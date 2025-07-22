@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Code Scanner</title>
+  <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+  <style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+    }
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    .header {
+        background: linear-gradient(135deg, #2c3e50, #3498db);
+        color: white;
+        padding: 30px;
+        text-align: center;
+    }
+    .header h1 {
+        margin: 0;
+        font-size: 2.5em;
+        font-weight: 300;
+    }
+    .content {
+        padding: 40px;
+    }
+    .scanner-container {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 30px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    #reader {
+        margin: 20px auto;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    .controls {
+        margin: 20px 0;
+    }
+    .btn {
+        background: #3498db;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        cursor: pointer;
+        margin: 5px;
+        font-size: 16px;
+        transition: background 0.3s;
+    }
+    .btn:hover {
+        background: #2980b9;
+    }
+    .btn:disabled {
+        background: #bdc3c7;
+        cursor: not-allowed;
+    }
+    .status {
+        margin: 20px 0;
+        padding: 15px;
+        border-radius: 8px;
+        font-weight: bold;
+    }
+    .status.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    .status.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f1b0b7;
+    }
+    .status.info {
+        background: #cce7ff;
+        color: #004085;
+        border: 1px solid #99d3ff;
+    }
+    .manual-input {
+        margin-top: 30px;
+        padding: 20px;
+        background: #ecf0f1;
+        border-radius: 8px;
+    }
+    .input-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    .input-group input {
+        flex: 1;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 16px;
+    }
+    .instructions {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    .back-button {
+        display: inline-block;
+        background: #6c757d;
+        color: white;
+        padding: 12px 24px;
+        text-decoration: none;
+        border-radius: 6px;
+        margin-top: 20px;
+        transition: background 0.3s;
+    }
+    .back-button:hover {
+        background: #5a6268;
+        color: white;
+        text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>📱 QR Code Scanner</h1>
+    <p>Scan chemical QR codes to view information</p>
+  </div>
+
+  <div class="content">
+    <div class="instructions">
+      <h3>📋 Instructions:</h3>
+      <ol>
+        <li>Click "Start Camera" to begin scanning</li>
+        <li>Point your camera at a chemical QR code</li>
+        <li>The system will automatically detect and process the code</li>
+        <li>You'll be redirected to the chemical information page</li>
+      </ol>
+      <p><strong>Note:</strong> Make sure to allow camera access when prompted by your browser.</p>
+    </div>
+
+    <div class="scanner-container">
+      <h3>🔍 Camera Scanner</h3>
+      <div id="reader"></div>
+
+      <div class="controls">
+        <button id="start-button" class="btn" onclick="startScanner()">📹 Start Camera</button>
+        <button id="stop-button" class="btn" onclick="stopScanner()" disabled>⏹️ Stop Camera</button>
+      </div>
+
+      <div id="status" class="status" style="display: none;"></div>
+    </div>
+
+    <div class="manual-input">
+      <h3>✍️ Manual QR Code Entry</h3>
+      <p>If you have a QR code ID, you can enter it manually:</p>
+      <div class="input-group">
+        <input type="text" id="manual-qr-input" placeholder="Enter QR code ID (e.g., 123e4567-e89b-12d3-a456-426614174000)">
+        <button class="btn" onclick="openManualQR()">🔍 View Chemical</button>
+      </div>
+    </div>
+
+    <div style="text-align: center;">
+      <a href="/chemicals-with-qr" class="back-button">📋 View All Chemicals</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  let html5QrcodeScanner = null;
+  let isScanning = false;
+
+  function startScanner() {
+      if (isScanning) return;
+
+      showStatus('Initializing camera...', 'info');
+
+      html5QrcodeScanner = new Html5QrcodeScanner(
+          "reader",
+          {
+              fps: 10,
+              qrbox: { width: 250, height: 250 },
+              aspectRatio: 1.0,
+              showTorchButtonIfSupported: true
+          },
+          false
+      );
+
+      html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+
+      document.getElementById('start-button').disabled = true;
+      document.getElementById('stop-button').disabled = false;
+      isScanning = true;
+
+      showStatus('Camera ready! Point at a QR code to scan.', 'info');
+  }
+
+  function stopScanner() {
+      if (!isScanning) return;
+
+      if (html5QrcodeScanner) {
+          html5QrcodeScanner.clear().then(() => {
+              document.getElementById('start-button').disabled = false;
+              document.getElementById('stop-button').disabled = true;
+              isScanning = false;
+              showStatus('Camera stopped.', 'info');
+          }).catch(err => {
+              console.error('Error stopping scanner:', err);
+              showStatus('Error stopping camera.', 'error');
+          });
+      }
+  }
+
+  function onScanSuccess(decodedText, decodedResult) {
+      console.log(`QR Code detected: ${decodedText}`);
+      showStatus(`QR Code detected! Redirecting...`, 'success');
+
+      // Stop the scanner
+      stopScanner();
+
+      // Extract QR code ID from the URL or use the full text if it's just an ID
+      let qrCodeId = decodedText;
+      if (decodedText.includes('/qr/')) {
+          qrCodeId = decodedText.split('/qr/')[1];
+      }
+
+      // Redirect to the chemical info page
+      window.location.href = `/qr/${qrCodeId}`;
+  }
+
+  function onScanFailure(error) {
+      // This is called when no QR code is detected, which is normal
+      // We don't need to show an error for every scan attempt
+      console.log(`QR Code scan error: ${error}`);
+  }
+
+  function showStatus(message, type) {
+      const statusDiv = document.getElementById('status');
+      statusDiv.textContent = message;
+      statusDiv.className = `status ${type}`;
+      statusDiv.style.display = 'block';
+
+      // Auto-hide info messages after 3 seconds
+      if (type === 'info') {
+          setTimeout(() => {
+              statusDiv.style.display = 'none';
+          }, 3000);
+      }
+  }
+
+  function openManualQR() {
+      const qrId = document.getElementById('manual-qr-input').value.trim();
+      if (qrId) {
+          window.location.href = `/qr/${qrId}`;
+      } else {
+          showStatus('Please enter a QR code ID.', 'error');
+      }
+  }
+
+  // Handle enter key in manual input
+  document.getElementById('manual-qr-input').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+          openManualQR();
+      }
+  });
+
+  // Cleanup when page is unloaded
+  window.addEventListener('beforeunload', function() {
+      if (isScanning) {
+          stopScanner();
+      }
+  });
+</script>
+</body>
+</html>
