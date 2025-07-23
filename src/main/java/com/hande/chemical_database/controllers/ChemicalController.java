@@ -5,18 +5,24 @@ import com.hande.chemical_database.models.ChemicalDTO;
 import com.hande.chemical_database.services.ChemicalService;
 import com.hande.chemical_database.services.ChemicalsFiltering;
 import com.hande.chemical_database.services.ChemicalsUploadCsv;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 
@@ -160,15 +166,86 @@ public class ChemicalController {
     @ResponseBody
     public ResponseEntity<String> uploadChemicalsFromCsv(@RequestParam("file") MultipartFile file) {
         try {
+            // Validate file
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest().body("Error: File is empty");
+            }
+
+            if (!file.getOriginalFilename().toLowerCase().endsWith(".csv")) {
+                return ResponseEntity.badRequest().body("Error: File must be a CSV file");
+            }
+
+            if (file.getSize() > 10 * 1024 * 1024) { // 10MB limit
+                return ResponseEntity.badRequest().body("Error: File size exceeds 10MB limit");
+            }
+
             Integer uploadedCount = chemicalsUploadCsv.uploadChemicals(file);
-            String message = String.format("Successfully uploaded %d chemicals", uploadedCount);
+            String message = String.format("Successfully uploaded %d chemicals from CSV file", uploadedCount);
+            log.info("CSV upload successful: {} chemicals uploaded from file: {}", uploadedCount, file.getOriginalFilename());
             return ResponseEntity.ok(message);
+
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+            log.error("CSV upload validation error: {}", e.getMessage());
+            return ResponseEntity.badRequest().body("Validation Error: " + e.getMessage());
         } catch (Exception e) {
-            log.error("Error uploading CSV: ", e);
+            log.error("Error uploading CSV file: {}", file.getOriginalFilename(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error processing CSV file");
+                    .body("Error processing CSV file: " + e.getMessage());
         }
+    }
+
+    @GetMapping("/export-csv")
+    public void exportChemicalsToCSV(HttpServletResponse response) throws IOException {
+        try {
+            // Set response headers
+            response.setContentType("text/csv");
+            response.setCharacterEncoding("UTF-8");
+
+            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+            String filename = "chemicals_export_" + timestamp + ".csv";
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+
+            // Get all chemicals
+            List<ChemicalDTO> chemicals = chemicalService.getAllChemicals();
+
+            // Write CSV content
+            PrintWriter writer = response.getWriter();
+
+            // Write header
+            writer.println("name,CASNo,LotNo,producer,storage,toxicState,responsible,orderDate,weight");
+
+            // Write data rows
+            for (ChemicalDTO chemical : chemicals) {
+                writer.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"%n",
+                        escapeCSV(chemical.getName()),
+                        escapeCSV(chemical.getCASNo()),
+                        escapeCSV(chemical.getLotNo()),
+                        escapeCSV(chemical.getProducer()),
+                        escapeCSV(chemical.getStorage()),
+                        chemical.getToxicState() != null ? chemical.getToxicState().toString() : "",
+                        escapeCSV(chemical.getResponsible()),
+                        chemical.getOrderDate() != null ? chemical.getOrderDate().toString() : "",
+                        escapeCSV(chemical.getWeight())
+                );
+            }
+
+            writer.flush();
+            log.info("Successfully exported {} chemicals to CSV", chemicals.size());
+
+        } catch (Exception e) {
+            log.error("Error exporting chemicals to CSV", e);
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error exporting data");
+        }
+    }
+
+    private String escapeCSV(String value) {
+        if (value == null) {
+            return "";
+        }
+        // Escape quotes by doubling them and wrap in quotes if needed
+        if (value.contains("\"")) {
+            value = value.replace("\"", "\"\"");
+        }
+        return value;
     }
 }
