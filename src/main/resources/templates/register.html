@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - Chemical Database</title>
+  <style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .register-container {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        overflow: hidden;
+        max-width: 500px;
+        width: 90%;
+        margin: 20px auto;
+    }
+    .header {
+        background: linear-gradient(135deg, #2c3e50, #3498db);
+        color: white;
+        padding: 30px;
+        text-align: center;
+    }
+    .header h1 {
+        margin: 0;
+        font-size: 2em;
+        font-weight: 300;
+    }
+    .form-container {
+        padding: 40px;
+    }
+    .form-row {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    .form-group {
+        margin-bottom: 20px;
+        flex: 1;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: bold;
+        color: #2c3e50;
+    }
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 16px;
+        box-sizing: border-box;
+    }
+    .form-group input:focus,
+    .form-group select:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+    }
+    .required {
+        color: #e74c3c;
+    }
+    .btn {
+        width: 100%;
+        background: #27ae60;
+        color: white;
+        border: none;
+        padding: 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        transition: background 0.3s;
+        margin-bottom: 15px;
+    }
+    .btn:hover {
+        background: #219a52;
+    }
+    .btn:disabled {
+        background: #bdc3c7;
+        cursor: not-allowed;
+    }
+    .status-message {
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        text-align: center;
+        font-weight: bold;
+        display: none;
+    }
+    .status-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    .status-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f1b0b7;
+    }
+    .links {
+        text-align: center;
+        margin-top: 20px;
+    }
+    .links a {
+        color: #3498db;
+        text-decoration: none;
+        margin: 0 10px;
+    }
+    .links a:hover {
+        text-decoration: underline;
+    }
+    .password-strength {
+        margin-top: 5px;
+        font-size: 12px;
+    }
+    .strength-weak { color: #e74c3c; }
+    .strength-medium { color: #f39c12; }
+    .strength-strong { color: #27ae60; }
+    .info-text {
+        font-size: 14px;
+        color: #666;
+        margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+<div class="register-container">
+  <div class="header">
+    <h1>🧪 Create Account</h1>
+    <p>Join the Chemical Database System</p>
+  </div>
+
+  <div class="form-container">
+    <div id="status-message" class="status-message"></div>
+
+    <form id="registerForm">
+      <div class="form-group">
+        <label for="username">Username <span class="required">*</span></label>
+        <input type="text" id="username" name="username" required>
+        <div class="info-text">Choose a unique username (3-20 characters)</div>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email <span class="required">*</span></label>
+        <input type="email" id="email" name="email" required>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password <span class="required">*</span></label>
+        <input type="password" id="password" name="password" required minlength="6">
+        <div id="password-strength" class="password-strength"></div>
+        <div class="info-text">Minimum 6 characters</div>
+      </div>
+
+      <div class="form-group">
+        <label for="confirmPassword">Confirm Password <span class="required">*</span></label>
+        <input type="password" id="confirmPassword" name="confirmPassword" required>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="firstName">First Name</label>
+          <input type="text" id="firstName" name="firstName">
+        </div>
+        <div class="form-group">
+          <label for="lastName">Last Name</label>
+          <input type="text" id="lastName" name="lastName">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="phoneNumber">Phone Number</label>
+        <input type="tel" id="phoneNumber" name="phoneNumber">
+      </div>
+
+      <button type="submit" class="btn" id="registerBtn">Create Account</button>
+    </form>
+
+    <div class="links">
+      <a href="/login">Already have an account? Sign In</a>
+      <a href="/">Back to Home</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Password strength checker
+  document.getElementById('password').addEventListener('input', function(e) {
+      const password = e.target.value;
+      const strengthDiv = document.getElementById('password-strength');
+      
+      if (password.length === 0) {
+          strengthDiv.textContent = '';
+          return;
+      }
+      
+      let strength = 0;
+      let feedback = [];
+      
+      // Length check
+      if (password.length >= 8) strength += 1;
+      else feedback.push('at least 8 characters');
+      
+      // Uppercase check
+      if (/[A-Z]/.test(password)) strength += 1;
+      else feedback.push('uppercase letter');
+      
+      // Lowercase check
+      if (/[a-z]/.test(password)) strength += 1;
+      else feedback.push('lowercase letter');
+      
+      // Number check
+      if (/\d/.test(password)) strength += 1;
+      else feedback.push('number');
+      
+      // Special character check
+      if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength += 1;
+      else feedback.push('special character');
+      
+      if (strength <= 2) {
+          strengthDiv.className = 'password-strength strength-weak';
+          strengthDiv.textContent = 'Weak - Add: ' + feedback.slice(0, 2).join(', ');
+      } else if (strength <= 3) {
+          strengthDiv.className = 'password-strength strength-medium';
+          strengthDiv.textContent = 'Medium - Add: ' + feedback.slice(0, 1).join(', ');
+      } else {
+          strengthDiv.className = 'password-strength strength-strong';
+          strengthDiv.textContent = 'Strong password!';
+      }
+  });
+
+  // Confirm password validation
+  document.getElementById('confirmPassword').addEventListener('input', function(e) {
+      const password = document.getElementById('password').value;
+      const confirmPassword = e.target.value;
+      
+      if (confirmPassword && password !== confirmPassword) {
+          e.target.setCustomValidity('Passwords do not match');
+      } else {
+          e.target.setCustomValidity('');
+      }
+  });
+
+  // Handle form submission
+  document.getElementById('registerForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(e.target);
+      const password = formData.get('password');
+      const confirmPassword = formData.get('confirmPassword');
+      
+      // Validate passwords match
+      if (password !== confirmPassword) {
+          showStatus('Passwords do not match.', 'error');
+          return;
+      }
+      
+      // Validate required fields
+      const username = formData.get('username').trim();
+      const email = formData.get('email').trim();
+      
+      if (!username || !email || !password) {
+          showStatus('Please fill in all required fields.', 'error');
+          return;
+      }
+      
+      if (password.length < 6) {
+          showStatus('Password must be at least 6 characters long.', 'error');
+          return;
+      }
+
+      const registerBtn = document.getElementById('registerBtn');
+      registerBtn.disabled = true;
+      registerBtn.textContent = 'Creating Account...';
+
+      try {
+          const userData = {
+              username: username,
+              email: email,
+              password: password,
+              first_name: formData.get('firstName') || '',
+              last_name: formData.get('lastName') || '',
+              phone_number: formData.get('phoneNumber') || '',
+              position: '',
+              duration: 0
+          };
+
+          const response = await fetch('/api/register', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(userData)
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+              showStatus('Account created successfully! Redirecting to login...', 'success');
+              
+              // Clear form
+              document.getElementById('registerForm').reset();
+              document.getElementById('password-strength').textContent = '';
+              
+              // Redirect to login after delay
+              setTimeout(() => {
+                  window.location.href = '/login';
+              }, 2000);
+              
+          } else {
+              showStatus(data.error || 'Registration failed', 'error');
+          }
+
+      } catch (error) {
+          console.error('Registration error:', error);
+          showStatus('Registration failed. Please check your connection and try again.', 'error');
+      } finally {
+          registerBtn.disabled = false;
+          registerBtn.textContent = 'Create Account';
+      }
+  });
+
+  function showStatus(message, type) {
+      const statusDiv = document.getElementById('status-message');
+      statusDiv.textContent = message;
+      statusDiv.className = `status-message status-${type}`;
+      statusDiv.style.display = 'block';
+      
+      // Auto-hide after 5 seconds for error messages
+      if (type === 'error') {
+          setTimeout(() => {
+              statusDiv.style.display = 'none';
+          }, 5000);
+      }
+  }
+</script>
+</body>
+</html>

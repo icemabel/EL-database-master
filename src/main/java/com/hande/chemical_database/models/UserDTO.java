@@ -1,11 +1,8 @@
 package com.hande.chemical_database.models;
 
+import com.hande.chemical_database.enums.UserRole;
 import lombok.*;
 
-/*
- * 18/02/2025
- * handebarkan
- */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -19,5 +16,5 @@ public class UserDTO {
     private String phone_number;
     private String position;
     private int duration;
-
+    private UserRole role; // Will be USER for new registrations, ADMIN only via admin panel
 }

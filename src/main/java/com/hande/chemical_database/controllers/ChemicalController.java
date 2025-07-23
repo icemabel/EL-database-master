@@ -5,15 +5,18 @@ import com.hande.chemical_database.models.ChemicalDTO;
 import com.hande.chemical_database.services.ChemicalService;
 import com.hande.chemical_database.services.ChemicalsFiltering;
 import com.hande.chemical_database.services.ChemicalsUploadCsv;
+import com.hande.chemical_database.services.QRCodeService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -35,8 +38,11 @@ public class ChemicalController {
     private final ChemicalService chemicalService;
     private final ChemicalsFiltering chemicalsFiltering;
     private final ChemicalsUploadCsv chemicalsUploadCsv;
+    private final QRCodeService qrCodeService;
 
+    // View operations - All authenticated users can view
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'LAB_MANAGER', 'LAB_TECH', 'LAB_USER', 'VIEWER')")
     @ResponseBody
     public ResponseEntity<List<ChemicalDTO>> getAllChemicals() {
         List<ChemicalDTO> chemicals = chemicalService.getAllChemicals();
@@ -44,6 +50,7 @@ public class ChemicalController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LAB_MANAGER', 'LAB_TECH', 'LAB_USER', 'VIEWER')")
     @ResponseBody
     public ResponseEntity<ChemicalDTO> getChemicalById(@PathVariable Long id) {
         Optional<ChemicalDTO> chemical = chemicalService.getChemicalById(id);
@@ -52,6 +59,7 @@ public class ChemicalController {
     }
 
     @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LAB_MANAGER', 'LAB_TECH', 'LAB_USER', 'VIEWER')")
     @ResponseBody
     public ResponseEntity<ChemicalDTO> searchByName(@RequestParam String name) {
         Optional<ChemicalDTO> chemical = chemicalsFiltering.searchByName(name);
@@ -60,6 +68,7 @@ public class ChemicalController {
     }
 
     @GetMapping("/search-cas")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LAB_MANAGER', 'LAB_TECH', 'LAB_USER', 'VIEWER')")
     @ResponseBody
     public ResponseEntity<List<Chemicals>> searchByCAS(@RequestParam String casNo) {
         List<Chemicals> chemicals = chemicalsFiltering.searchByCASNo(casNo);
@@ -67,6 +76,7 @@ public class ChemicalController {
     }
 
     @GetMapping("/filter")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LAB_MANAGER', 'LAB_TECH', 'LAB_USER', 'VIEWER')")
     @ResponseBody
     public ResponseEntity<Page<Chemicals>> filterChemicals(
             @RequestParam(required = false) String name,
@@ -76,8 +86,6 @@ public class ChemicalController {
             @RequestParam(required = false, defaultValue = "25") Integer size) {
 
         PageRequest pageRequest = chemicalsFiltering.buildPageRequest(page, size);
-
-        // Create a dummy chemical object for filtering
         Chemicals filterCriteria = Chemicals.builder()
                 .name(name)
                 .storage(storage)
@@ -99,6 +107,7 @@ public class ChemicalController {
     }
 
     @GetMapping("/toxic")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LAB_MANAGER', 'LAB_TECH', 'LAB_USER', 'VIEWER')")
     @ResponseBody
     public ResponseEntity<Page<Chemicals>> getToxicChemicals(
             @RequestParam(required = false, defaultValue = "0") Integer page,
@@ -111,7 +120,9 @@ public class ChemicalController {
         return ResponseEntity.ok(toxicChemicals);
     }
 
+    // Create operations - All except viewers
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'LAB_MANAGER', 'LAB_TECH', 'LAB_USER')")
     @ResponseBody
     public ResponseEntity<ChemicalDTO> createChemical(@Valid @RequestBody ChemicalDTO chemicalDTO) {
         try {
@@ -123,7 +134,9 @@ public class ChemicalController {
         }
     }
 
+    // Update operations - All except viewers
     @PutMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'LAB_MANAGER', 'LAB_TECH', 'LAB_USER')")
     @ResponseBody
     public ResponseEntity<ChemicalDTO> updateChemical(@Valid @RequestBody ChemicalDTO chemicalDTO) {
         try {
@@ -136,7 +149,9 @@ public class ChemicalController {
         }
     }
 
+    // Delete operations - Only Admin and Lab Manager
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LAB_MANAGER')")
     @ResponseBody
     public ResponseEntity<Void> deleteChemical(@PathVariable Long id) {
         try {
@@ -150,6 +165,7 @@ public class ChemicalController {
     }
 
     @DeleteMapping("/name/{name}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LAB_MANAGER')")
     @ResponseBody
     public ResponseEntity<Void> deleteChemicalByName(@PathVariable String name) {
         try {
@@ -162,11 +178,12 @@ public class ChemicalController {
         }
     }
 
+    // CSV operations - Lab Tech level and above
     @PostMapping("/upload-csv")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LAB_MANAGER', 'LAB_TECH')")
     @ResponseBody
     public ResponseEntity<String> uploadChemicalsFromCsv(@RequestParam("file") MultipartFile file) {
         try {
-            // Validate file
             if (file.isEmpty()) {
                 return ResponseEntity.badRequest().body("Error: File is empty");
             }
@@ -175,7 +192,7 @@ public class ChemicalController {
                 return ResponseEntity.badRequest().body("Error: File must be a CSV file");
             }
 
-            if (file.getSize() > 10 * 1024 * 1024) { // 10MB limit
+            if (file.getSize() > 10 * 1024 * 1024) {
                 return ResponseEntity.badRequest().body("Error: File size exceeds 10MB limit");
             }
 
@@ -195,9 +212,9 @@ public class ChemicalController {
     }
 
     @GetMapping("/export-csv")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LAB_MANAGER', 'LAB_TECH', 'LAB_USER')")
     public void exportChemicalsToCSV(HttpServletResponse response) throws IOException {
         try {
-            // Set response headers
             response.setContentType("text/csv");
             response.setCharacterEncoding("UTF-8");
 
@@ -205,16 +222,11 @@ public class ChemicalController {
             String filename = "chemicals_export_" + timestamp + ".csv";
             response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
 
-            // Get all chemicals
             List<ChemicalDTO> chemicals = chemicalService.getAllChemicals();
-
-            // Write CSV content
             PrintWriter writer = response.getWriter();
 
-            // Write header
             writer.println("name,CASNo,LotNo,producer,storage,toxicState,responsible,orderDate,weight");
 
-            // Write data rows
             for (ChemicalDTO chemical : chemicals) {
                 writer.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"%n",
                         escapeCSV(chemical.getName()),
@@ -238,11 +250,57 @@ public class ChemicalController {
         }
     }
 
+    // QR Code operations - All authenticated users except viewers for generation
+    @PostMapping("/{id}/generate-qr")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LAB_MANAGER', 'LAB_TECH', 'LAB_USER')")
+    @ResponseBody
+    public ResponseEntity<String> generateQRCode(@PathVariable Long id) {
+        try {
+            String qrCodeId = qrCodeService.generateQRCodeForChemical(id);
+            return ResponseEntity.ok("QR code generated successfully. ID: " + qrCodeId);
+        } catch (Exception e) {
+            log.error("Error generating QR code for chemical ID: {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error generating QR code: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/{id}/qr-image")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LAB_MANAGER', 'LAB_TECH', 'LAB_USER', 'VIEWER')")
+    @ResponseBody
+    public ResponseEntity<byte[]> getQRCodeImage(@PathVariable Long id) {
+        try {
+            byte[] qrCodeImage = qrCodeService.getQRCodeImage(id);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.IMAGE_PNG);
+            headers.setContentLength(qrCodeImage.length);
+
+            return new ResponseEntity<>(qrCodeImage, headers, HttpStatus.OK);
+        } catch (Exception e) {
+            log.error("Error retrieving QR code image for chemical ID: {}", id, e);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+    }
+
+    @PostMapping("/{id}/regenerate-qr")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LAB_MANAGER', 'LAB_TECH')")
+    @ResponseBody
+    public ResponseEntity<String> regenerateQRCode(@PathVariable Long id) {
+        try {
+            qrCodeService.regenerateQRCode(id);
+            return ResponseEntity.ok("QR code regenerated successfully");
+        } catch (Exception e) {
+            log.error("Error regenerating QR code for chemical ID: {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error regenerating QR code: " + e.getMessage());
+        }
+    }
+
     private String escapeCSV(String value) {
         if (value == null) {
             return "";
         }
-        // Escape quotes by doubling them and wrap in quotes if needed
         if (value.contains("\"")) {
             value = value.replace("\"", "\"\"");
         }

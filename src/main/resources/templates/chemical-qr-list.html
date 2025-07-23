@@ -232,6 +232,9 @@
           const token = getAuthToken();
           if (!token) {
               showStatus('Please log in to view chemicals.', 'error');
+              setTimeout(() => {
+                  window.location.href = '/login';
+              }, 2000);
               return;
           }
 
@@ -242,6 +245,15 @@
           });
 
           if (!response.ok) {
+              if (response.status === 401) {
+                  showStatus('Session expired. Please log in again.', 'error');
+                  localStorage.removeItem('jwt-token');
+                  sessionStorage.removeItem('jwt-token');
+                  setTimeout(() => {
+                      window.location.href = '/login';
+                  }, 2000);
+                  return;
+              }
               throw new Error('Failed to load chemicals');
           }
 

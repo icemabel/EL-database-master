@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Chemical Database</title>
+  <style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .login-container {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        overflow: hidden;
+        max-width: 400px;
+        width: 90%;
+    }
+    .header {
+        background: linear-gradient(135deg, #2c3e50, #3498db);
+        color: white;
+        padding: 30px;
+        text-align: center;
+    }
+    .header h1 {
+        margin: 0;
+        font-size: 2em;
+        font-weight: 300;
+    }
+    .form-container {
+        padding: 40px;
+    }
+    .form-group {
+        margin-bottom: 20px;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: bold;
+        color: #2c3e50;
+    }
+    .form-group input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 16px;
+        box-sizing: border-box;
+    }
+    .form-group input:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+    }
+    .btn {
+        width: 100%;
+        background: #3498db;
+        color: white;
+        border: none;
+        padding: 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        transition: background 0.3s;
+        margin-bottom: 15px;
+    }
+    .btn:hover {
+        background: #2980b9;
+    }
+    .btn:disabled {
+        background: #bdc3c7;
+        cursor: not-allowed;
+    }
+    .status-message {
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        text-align: center;
+        font-weight: bold;
+        display: none;
+    }
+    .status-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    .status-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f1b0b7;
+    }
+    .links {
+        text-align: center;
+        margin-top: 20px;
+    }
+    .links a {
+        color: #3498db;
+        text-decoration: none;
+        margin: 0 10px;
+    }
+    .links a:hover {
+        text-decoration: underline;
+    }
+    .demo-login {
+        background: #e8f4f8;
+        border: 1px solid #bee5eb;
+        border-radius: 6px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    .demo-login h4 {
+        margin: 0 0 10px 0;
+        color: #0c5460;
+    }
+    .demo-login p {
+        margin: 5px 0;
+        font-size: 14px;
+        color: #0c5460;
+    }
+    .demo-btn {
+        background: #17a2b8;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        margin-right: 10px;
+        margin-top: 5px;
+    }
+    .demo-btn:hover {
+        background: #138496;
+    }
+  </style>
+</head>
+<body>
+<div class="login-container">
+  <div class="header">
+    <h1>🧪 Chemical Database</h1>
+    <p>Sign in to continue</p>
+  </div>
+
+  <div class="form-container">
+    <div class="demo-login">
+      <h4>Demo Login Credentials</h4>
+      <p><strong>Admin:</strong> admin / password</p>
+      <button class="demo-btn" onclick="fillDemoLogin('admin', 'password')">Use Admin</button>
+    </div>
+
+    <div id="status-message" class="status-message"></div>
+
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required>
+      </div>
+
+      <button type="submit" class="btn" id="loginBtn">Sign In</button>
+    </form>
+
+    <div class="links">
+      <a href="/register">Create Account</a>
+      <a href="/">Back to Home</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Fill demo login credentials
+  function fillDemoLogin(username, password) {
+      document.getElementById('username').value = username;
+      document.getElementById('password').value = password;
+  }
+
+  // Handle form submission
+  document.getElementById('loginForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+
+      if (!username || !password) {
+          showStatus('Please enter both username and password.', 'error');
+          return;
+      }
+
+      const loginBtn = document.getElementById('loginBtn');
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'Signing In...';
+
+      try {
+          const response = await fetch('/api/login', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                  username: username,
+                  password: password
+              })
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+              // Store JWT token
+              localStorage.setItem('jwt-token', data.token);
+              localStorage.setItem('username', data.username);
+
+              showStatus('Login successful! Redirecting...', 'success');
+
+              // Redirect to main page after short delay
+              setTimeout(() => {
+                  window.location.href = '/';
+              }, 1500);
+
+          } else {
+              showStatus(data.error || 'Login failed', 'error');
+          }
+
+      } catch (error) {
+          console.error('Login error:', error);
+          showStatus('Login failed. Please check your connection and try again.', 'error');
+      } finally {
+          loginBtn.disabled = false;
+          loginBtn.textContent = 'Sign In';
+      }
+  });
+
+  function showStatus(message, type) {
+      const statusDiv = document.getElementById('status-message');
+      statusDiv.textContent = message;
+      statusDiv.className = `status-message status-${type}`;
+      statusDiv.style.display = 'block';
+
+      if (type === 'success') {
+          setTimeout(() => {
+              statusDiv.style.display = 'none';
+          }, 3000);
+      }
+  }
+
+  // Check if already logged in
+  window.addEventListener('load', function() {
+      const token = localStorage.getItem('jwt-token');
+      if (token) {
+          // Verify token is still valid
+          fetch('/api/profile', {
+              headers: {
+                  'Authorization': `Bearer ${token}`
+              }
+          })
+          .then(response => {
+              if (response.ok) {
+                  // Already logged in, redirect
+                  window.location.href = '/chemicals-with-qr';
+              }
+          })
+          .catch(() => {
+              // Token invalid, remove it
+              localStorage.removeItem('jwt-token');
+              localStorage.removeItem('username');
+          });
+      }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+package com.hande.chemical_database.models;
+
+import com.hande.chemical_database.entities.UserProfile;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import java.util.Collection;
+import java.util.Collections;
+
+/**
+* Implementation of Spring Security's UserDetails interface
+* This class adapts our UserProfile entity to work with Spring Security
+*/
+public class UserPrincipal implements UserDetails {
+
+private static final long serialVersionUID = 1L;
+private final UserProfile user;
+
+public UserPrincipal(UserProfile user) {
+this.user = user;
+}
+
+@Override
+public Collection<? extends GrantedAuthority> getAuthorities() {
+// Grant ADMIN role to admin user only
+// All other users get USER role
+if ("admin".equals(user.getUsername())) {
+return Collections.singleton(new SimpleGrantedAuthority("ROLE_ADMIN"));
+} else {
+return Collections.singleton(new SimpleGrantedAuthority("ROLE_USER"));
+}
+}
+
+@Override
+public String getPassword() {
+return user.getPassword();
+}
+
+@Override
+public String getUsername() {
+return user.getUsername();
+}
+
+@Override
+public boolean isAccountNonExpired() {
+return true; // Account never expires
+}
+
+@Override
+public boolean isAccountNonLocked() {
+return true; // Account is never locked
+}
+
+@Override
+public boolean isCredentialsNonExpired() {
+return true; // Credentials never expire
+}
+
+@Override
+public boolean isEnabled() {
+return true; // Account is always enabled
+}
+
+// Getter for the underlying user profile
+public UserProfile getUserProfile() {
+return user;
+}
+
+// Convenience method to get user ID
+public Long getUserId() {
+return user.getId();
+}
+
+// Convenience method to get full name
+public String getFullName() {
+String firstName = user.getFirst_name();
+String lastName = user.getLast_name();
+
+if (firstName != null && lastName != null) {
+return firstName + " " + lastName;
+} else if (firstName != null) {
+return firstName;
+} else if (lastName != null) {
+return lastName;
+} else {
+return user.getUsername();
+}
+}
+
+// Check if user has admin role
+public boolean isAdmin() {
+return getAuthorities().stream()
+.anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+}
+}
