@@ -1,17 +1,14 @@
 package com.hande.chemical_database.controllers;
 
-import com.hande.chemical_database.entities.Chemicals;
-import com.hande.chemical_database.models.ChemicalDTO;
-import com.hande.chemical_database.services.ChemicalService;
-import com.hande.chemical_database.services.ChemicalsFiltering;
-import com.hande.chemical_database.services.ChemicalsUploadCsv;
-import com.hande.chemical_database.services.QRCodeService;
+import com.hande.chemical_database.entities.StudyList;
+import com.hande.chemical_database.models.StudyListDTO;
+import com.hande.chemical_database.services.StudyListService;
+import com.hande.chemical_database.services.StudyListUploadCsv;
+import com.hande.chemical_database.services.StudyListQRCodeService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -28,68 +25,67 @@ import java.util.List;
 import java.util.Optional;
 
 @Controller
-@RequestMapping("/api/chemicals")
+@RequestMapping("/api/studies")
 @RequiredArgsConstructor
 @Slf4j
-public class ChemicalController {
+public class StudyListController {
 
-    private final ChemicalService chemicalService;
-    private final ChemicalsFiltering chemicalsFiltering;
-    private final ChemicalsUploadCsv chemicalsUploadCsv;
-    private final QRCodeService qrCodeService;
+    private final StudyListService studyListService;
+    private final StudyListUploadCsv studyListUploadCsv;
+    private final StudyListQRCodeService qrCodeService;
 
     @GetMapping
     @ResponseBody
-    public ResponseEntity<List<ChemicalDTO>> getAllChemicals() {
+    public ResponseEntity<List<StudyListDTO>> getAllStudyLists() {
         try {
-            log.info("Getting all chemicals...");
-            List<ChemicalDTO> chemicals = chemicalService.getAllChemicals();
-            log.info("Found {} chemicals", chemicals.size());
-            return ResponseEntity.ok(chemicals);
+            log.info("Getting all study lists...");
+            List<StudyListDTO> studies = studyListService.getAllStudyLists();
+            log.info("Found {} studies", studies.size());
+            return ResponseEntity.ok(studies);
         } catch (Exception e) {
-            log.error("Error getting all chemicals", e);
+            log.error("Error getting all studies", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @GetMapping("/{id}")
     @ResponseBody
-    public ResponseEntity<ChemicalDTO> getChemicalById(@PathVariable Long id) {
+    public ResponseEntity<StudyListDTO> getStudyListById(@PathVariable Long id) {
         try {
-            log.info("Getting chemical by ID: {}", id);
-            Optional<ChemicalDTO> chemical = chemicalService.getChemicalById(id);
-            return chemical.map(ResponseEntity::ok)
+            log.info("Getting study by ID: {}", id);
+            Optional<StudyListDTO> study = studyListService.getStudyListById(id);
+            return study.map(ResponseEntity::ok)
                     .orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
-            log.error("Error getting chemical by ID: {}", id, e);
+            log.error("Error getting study by ID: {}", id, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @PostMapping
     @ResponseBody
-    public ResponseEntity<ChemicalDTO> createChemical(@Valid @RequestBody ChemicalDTO chemicalDTO) {
+    public ResponseEntity<StudyListDTO> createStudyList(@Valid @RequestBody StudyListDTO studyListDTO) {
         try {
-            log.info("Creating chemical: {}", chemicalDTO.getName());
-            ChemicalDTO createdChemical = chemicalService.createChemicals(chemicalDTO);
-            log.info("Chemical created with ID: {}", createdChemical.getId());
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdChemical);
+            log.info("Creating study: {}", studyListDTO.getStudyCode());
+            StudyListDTO createdStudy = studyListService.createStudyList(studyListDTO);
+            log.info("Study created with ID: {}", createdStudy.getId());
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdStudy);
         } catch (Exception e) {
-            log.error("Error creating chemical", e);
+            log.error("Error creating study", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
 
-    // QR Code endpoints (simplified)
+    // QR Code endpoints
     @PostMapping("/{id}/generate-qr")
     @ResponseBody
     public ResponseEntity<String> generateQRCode(@PathVariable Long id) {
         try {
-            log.info("Generating QR code for chemical ID: {}", id);
-            String qrCodeId = qrCodeService.generateQRCodeForChemical(id);
+            log.info("Generating QR code for study ID: {}", id);
+            String qrCodeId = qrCodeService.generateQRCodeForStudyList(id);
             return ResponseEntity.ok("QR code generated successfully. ID: " + qrCodeId);
         } catch (Exception e) {
-            log.error("Error generating QR code for chemical ID: {}", id, e);
+            log.error("Error generating QR code for study ID: {}", id, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error generating QR code: " + e.getMessage());
         }
@@ -99,7 +95,7 @@ public class ChemicalController {
     @ResponseBody
     public ResponseEntity<byte[]> getQRCodeImage(@PathVariable Long id) {
         try {
-            log.info("Getting QR code image for chemical ID: {}", id);
+            log.info("Getting QR code image for study ID: {}", id);
             byte[] qrCodeImage = qrCodeService.getQRCodeImage(id);
 
             HttpHeaders headers = new HttpHeaders();
@@ -108,15 +104,15 @@ public class ChemicalController {
 
             return new ResponseEntity<>(qrCodeImage, headers, HttpStatus.OK);
         } catch (Exception e) {
-            log.error("Error retrieving QR code image for chemical ID: {}", id, e);
+            log.error("Error retrieving QR code image for study ID: {}", id, e);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
 
-    // CSV endpoints (simplified)
+    // CSV endpoints
     @PostMapping("/upload-csv")
     @ResponseBody
-    public ResponseEntity<String> uploadChemicalsFromCsv(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<String> uploadStudyListsFromCsv(@RequestParam("file") MultipartFile file) {
         try {
             log.info("Uploading CSV file: {}", file.getOriginalFilename());
 
@@ -128,9 +124,9 @@ public class ChemicalController {
                 return ResponseEntity.badRequest().body("Error: File must be a CSV file");
             }
 
-            Integer uploadedCount = chemicalsUploadCsv.uploadChemicals(file);
-            String message = String.format("Successfully uploaded %d chemicals from CSV file", uploadedCount);
-            log.info("CSV upload successful: {} chemicals uploaded", uploadedCount);
+            Integer uploadedCount = studyListUploadCsv.uploadStudyLists(file);
+            String message = String.format("Successfully uploaded %d studies from CSV file", uploadedCount);
+            log.info("CSV upload successful: {} studies uploaded", uploadedCount);
             return ResponseEntity.ok(message);
 
         } catch (Exception e) {
@@ -141,43 +137,44 @@ public class ChemicalController {
     }
 
     @GetMapping("/export-csv")
-    public void exportChemicalsToCSV(HttpServletResponse response) throws IOException {
+    public void exportStudyListsToCSV(HttpServletResponse response) throws IOException {
         try {
-            log.info("Exporting chemicals to CSV");
+            log.info("Exporting studies to CSV");
 
             response.setContentType("text/csv");
             response.setCharacterEncoding("UTF-8");
 
             String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-            String filename = "chemicals_export_" + timestamp + ".csv";
+            String filename = "studies_export_" + timestamp + ".csv";
             response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
 
-            List<ChemicalDTO> chemicals = chemicalService.getAllChemicals();
+            List<StudyListDTO> studies = studyListService.getAllStudyLists();
             PrintWriter writer = response.getWriter();
 
             // Write header
-            writer.println("name,CASNo,LotNo,producer,storage,toxicState,responsible,orderDate,weight");
+            writer.println("studyCode,documentCodes,materialType,studyLevel,riskLevel,info,numberOfSamples,objectOfStudy,responsiblePerson,status");
 
             // Write data rows
-            for (ChemicalDTO chemical : chemicals) {
-                writer.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"%n",
-                        escapeCSV(chemical.getName()),
-                        escapeCSV(chemical.getCASNo()),
-                        escapeCSV(chemical.getLotNo()),
-                        escapeCSV(chemical.getProducer()),
-                        escapeCSV(chemical.getStorage()),
-                        chemical.getToxicState() != null ? chemical.getToxicState().toString() : "",
-                        escapeCSV(chemical.getResponsible()),
-                        chemical.getOrderDate() != null ? chemical.getOrderDate().toString() : "",
-                        escapeCSV(chemical.getWeight())
+            for (StudyListDTO study : studies) {
+                writer.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"%n",
+                        escapeCSV(study.getStudyCode()),
+                        escapeCSV(study.getDocumentCodes()),
+                        escapeCSV(study.getMaterialType()),
+                        escapeCSV(study.getStudyLevel()),
+                        escapeCSV(study.getRiskLevel()),
+                        escapeCSV(study.getInfo()),
+                        escapeCSV(study.getNumberOfSamples()),
+                        escapeCSV(study.getObjectOfStudy()),
+                        escapeCSV(study.getResponsiblePerson()),
+                        escapeCSV(study.getStatus())
                 );
             }
 
             writer.flush();
-            log.info("Successfully exported {} chemicals to CSV", chemicals.size());
+            log.info("Successfully exported {} studies to CSV", studies.size());
 
         } catch (Exception e) {
-            log.error("Error exporting chemicals to CSV", e);
+            log.error("Error exporting studies to CSV", e);
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error exporting data");
         }
     }

@@ -1,5 +1,9 @@
 package com.hande.chemical_database.controllers;
 
+// AdminController temporarily disabled for testing without authentication
+// Uncomment and fix when adding authentication back
+
+/*
 import com.hande.chemical_database.entities.UserProfile;
 import com.hande.chemical_database.models.UserDTO;
 import com.hande.chemical_database.services.AdminService;
@@ -211,3 +215,5 @@ public class AdminController {
         }
     }
 }
+
+ */

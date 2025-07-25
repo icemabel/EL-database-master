@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Login Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .form-group { margin: 20px 0; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        .btn { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        .result { margin: 20px 0; padding: 15px; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f1b0b7; }
+        .info { background: #cce7ff; color: #004085; border: 1px solid #99d3ff; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+<h1>🔐 Login Test Page</h1>
+
+<div class="form-group">
+    <label>Username:</label>
+    <input type="text" id="username" value="admin" placeholder="Enter username">
+</div>
+
+<div class="form-group">
+    <label>Password:</label>
+    <input type="password" id="password" value="password" placeholder="Enter password">
+</div>
+
+<button class="btn" onclick="testLogin()">Test Login</button>
+<button class="btn" onclick="testUsers()">List All Users</button>
+<button class="btn" onclick="checkCurrentAuth()">Check Current Auth</button>
+
+<div id="results"></div>
+
+<script>
+    function showResult(title, data, type = 'info') {
+        const results = document.getElementById('results');
+        const div = document.createElement('div');
+        div.className = `result ${type}`;
+        div.innerHTML = `
+            <h3>${title}</h3>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+        `;
+        results.appendChild(div);
+    }
+
+    async function testLogin() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        showResult('Login Attempt', { username, password: '***' }, 'info');
+
+        try {
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showResult('✅ Login Success', data, 'success');
+                // Store token for testing
+                localStorage.setItem('jwt-token', data.token);
+                localStorage.setItem('username', data.username);
+            } else {
+                showResult('❌ Login Failed', data, 'error');
+            }
+
+        } catch (error) {
+            showResult('❌ Network Error', { error: error.message }, 'error');
+        }
+    }
+
+    async function testUsers() {
+        try {
+            // Try to access debug endpoint to list users
+            const token = localStorage.getItem('jwt-token');
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+            const response = await fetch('/api/debug/users', { headers });
+
+            if (response.ok) {
+                const users = await response.json();
+                showResult('📋 Users in Database', users, 'info');
+            } else {
+                showResult('❌ Cannot Access Users', {
+                    status: response.status,
+                    statusText: response.statusText
+                }, 'error');
+            }
+        } catch (error) {
+            showResult('❌ Error Getting Users', { error: error.message }, 'error');
+        }
+    }
+
+    async function checkCurrentAuth() {
+        const token = localStorage.getItem('jwt-token');
+        const username = localStorage.getItem('username');
+
+        if (!token) {
+            showResult('🔍 Current Auth Status', { message: 'No token found' }, 'info');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/profile', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showResult('✅ Current Auth Status', data, 'success');
+            } else {
+                showResult('❌ Auth Check Failed', data, 'error');
+            }
+        } catch (error) {
+            showResult('❌ Auth Check Error', { error: error.message }, 'error');
+        }
+    }
+
+    // Test different users
+    function setCredentials(user, pass) {
+        document.getElementById('username').value = user;
+        document.getElementById('password').value = pass;
+    }
+
+    // Add quick buttons for testing
+    document.addEventListener('DOMContentLoaded', function() {
+        const quickTests = document.createElement('div');
+        quickTests.innerHTML = `
+            <h3>Quick Test Buttons:</h3>
+            <button class="btn" onclick="setCredentials('admin', 'password')">Admin</button>
+            <button class="btn" onclick="setCredentials('labtech1', 'password')">LabTech1</button>
+            <button class="btn" onclick="setCredentials('test1', 'password')">Test1</button>
+            <hr>
+        `;
+        document.body.insertBefore(quickTests, document.querySelector('.form-group'));
+    });
+</script>
+</body>
+</html>

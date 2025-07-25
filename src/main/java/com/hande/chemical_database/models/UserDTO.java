@@ -16,5 +16,6 @@ public class UserDTO {
     private String phone_number;
     private String position;
     private int duration;
-    private UserRole role; // Will be USER for new registrations, ADMIN only via admin panel
+    @Builder.Default
+    private UserRole role = UserRole.USER;
 }

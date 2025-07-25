@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard - Chemical Database</title>
+  <script src="/js/auth-check.js"></script>
   <style>
     body {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -246,11 +247,11 @@
         <div class="action-desc">Bulk data operations</div>
       </a>
 
-      <a href="/h2-console" class="action-card danger" target="_blank">
+      <div class="action-card danger" onclick="showDatabaseInfo()">
         <div class="action-icon">💾</div>
-        <div class="action-title">Database Console</div>
-        <div class="action-desc">H2 database access</div>
-      </a>
+        <div class="action-title">Database Info</div>
+        <div class="action-desc">MySQL database details</div>
+      </div>
     </div>
 
     <!-- System Information -->
@@ -292,6 +293,7 @@
     </div>
   </div>
 </div>
+
 
 <script>
   // Load dashboard data when page loads

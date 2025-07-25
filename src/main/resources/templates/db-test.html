@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Database Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .success { color: #27ae60; background: #d4edda; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .error { color: #e74c3c; background: #f8d7da; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .info { color: #2c3e50; background: #d1ecf1; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background: #f8f9fa; font-weight: bold; }
+        .btn { background: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; text-decoration: none; display: inline-block; }
+        .btn:hover { background: #2980b9; color: white; text-decoration: none; }
+        .btn.success { background: #27ae60; }
+        .btn.danger { background: #e74c3c; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🔍 Database Test Page</h1>
+
+    <!-- Show error if exists -->
+    <div th:if="${error}" class="error">
+        <h3>❌ Database Error</h3>
+        <p th:text="${error}">Error message</p>
+    </div>
+
+    <!-- Show success message if exists -->
+    <div th:if="${message}" class="success">
+        <h3>✅ Database Status</h3>
+        <p th:text="${message}">Success message</p>
+    </div>
+
+    <!-- Show chemicals if available -->
+    <div th:if="${chemicals}">
+        <div class="info">
+            <h3>📊 Database Contents</h3>
+            <p>Found <span th:text="${#lists.size(chemicals)}">0</span> chemicals in the database</p>
+        </div>
+
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>CAS No</th>
+                <th>Storage</th>
+                <th>Toxic</th>
+                <th>Responsible</th>
+                <th>QR Code</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="chemical : ${chemicals}">
+                <td th:text="${chemical.id}">ID</td>
+                <td th:text="${chemical.name}">Name</td>
+                <td th:text="${chemical.CASNo ?: 'N/A'}">CAS</td>
+                <td th:text="${chemical.storage ?: 'N/A'}">Storage</td>
+                <td>
+                    <span th:if="${chemical.toxicState == true}" style="color: #e74c3c;">⚠️ TOXIC</span>
+                    <span th:if="${chemical.toxicState == false}" style="color: #27ae60;">✅ SAFE</span>
+                    <span th:if="${chemical.toxicState == null}" style="color: #6c757d;">❓ Unknown</span>
+                </td>
+                <td th:text="${chemical.responsible ?: 'N/A'}">Responsible</td>
+                <td th:text="${chemical.qrCode ?: 'Not generated'}">QR Code</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div style="margin: 30px 0;">
+        <h3>🔗 Test Links</h3>
+        <a href="/api/chemicals" class="btn" target="_blank">Test API: /api/chemicals</a>
+        <a href="/chemicals-with-qr" class="btn success">Go to Chemical List</a>
+        <a href="/h2-console" class="btn" target="_blank">H2 Database Console</a>
+        <a href="/" class="btn">Back to Home</a>
+    </div>
+
+    <div class="info">
+        <h3>💡 Database Information</h3>
+        <ul>
+            <li><strong>Database Type:</strong> H2 In-Memory</li>
+            <li><strong>JDBC URL:</strong> jdbc:h2:mem:chemicaldb</li>
+            <li><strong>Username:</strong> sa</li>
+            <li><strong>Password:</strong> password</li>
+            <li><strong>Console URL:</strong> <a href="/h2-console" target="_blank">/h2-console</a></li>
+        </ul>
+    </div>
+
+    <div class="info">
+        <h3>🛠️ Testing Instructions</h3>
+        <ol>
+            <li>Click "Test API" to see raw JSON data</li>
+            <li>Click "Go to Chemical List" to see the formatted page</li>
+            <li>Click "H2 Database Console" to view database directly</li>
+            <li>Check server logs for any error messages</li>
+        </ol>
+    </div>
+</div>
+</body>
+</html>

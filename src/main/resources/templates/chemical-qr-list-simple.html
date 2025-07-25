@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chemical Database (Simple)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        .content {
+            padding: 40px;
+        }
+        .info-box {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #2980b9;
+            color: white;
+            text-decoration: none;
+        }
+        .btn.success {
+            background: #27ae60;
+        }
+        .btn.success:hover {
+            background: #219a52;
+        }
+        .search-box {
+            flex: 1;
+            max-width: 400px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        .chemicals-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        .chemical-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .chemical-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        .chemical-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        .chemical-info {
+            margin-bottom: 15px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #555;
+        }
+        .info-value {
+            color: #2c3e50;
+            text-align: right;
+            max-width: 60%;
+            word-wrap: break-word;
+        }
+        .toxic-badge {
+            background: #e74c3c;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .safe-badge {
+            background: #27ae60;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+        .empty-value {
+            color: #999;
+            font-style: italic;
+        }
+        .status-message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f1b0b7;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🧪 Chemical Database (Simple Mode)</h1>
+        <p>No authentication required - direct database access</p>
+    </div>
+
+    <div class="content">
+        <div class="info-box">
+            <h4>🔓 Authentication Disabled</h4>
+            <p>This is a simplified version with all security disabled for testing database functionality.</p>
+        </div>
+
+        <div class="controls">
+            <input type="text" id="searchBox" class="search-box" placeholder="Search chemicals by name...">
+            <div>
+                <a href="/scanner" class="btn">📱 QR Scanner</a>
+                <a href="/csv-import-export" class="btn">📊 CSV Import/Export</a>
+                <a href="/test-db" class="btn success">🔍 Test Database</a>
+            </div>
+        </div>
+
+        <div id="statusMessage" style="display: none;"></div>
+
+        <div id="loadingMessage" class="loading">
+            Loading chemicals from database...
+        </div>
+
+        <div id="chemicalsContainer" class="chemicals-grid" style="display: none;">
+            <!-- Chemicals will be loaded here via JavaScript -->
+        </div>
+    </div>
+</div>
+
+<script>
+    let allChemicals = [];
+
+    // Load chemicals when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Page loaded, starting to load chemicals...');
+        loadChemicals();
+
+        // Add search functionality
+        document.getElementById('searchBox').addEventListener('input', function(e) {
+            filterChemicals(e.target.value);
+        });
+    });
+
+    async function loadChemicals() {
+        try {
+            console.log('Making request to /api/chemicals...');
+
+            const response = await fetch('/api/chemicals', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            allChemicals = await response.json();
+            console.log('Loaded chemicals:', allChemicals.length);
+
+            displayChemicals(allChemicals);
+
+            document.getElementById('loadingMessage').style.display = 'none';
+            document.getElementById('chemicalsContainer').style.display = 'grid';
+
+            showStatus(`Successfully loaded ${allChemicals.length} chemicals`, 'success');
+
+        } catch (error) {
+            console.error('Error loading chemicals:', error);
+            showStatus('Error loading chemicals: ' + error.message, 'error');
+            document.getElementById('loadingMessage').textContent = 'Error loading chemicals: ' + error.message;
+        }
+    }
+
+    function displayChemicals(chemicals) {
+        const container = document.getElementById('chemicalsContainer');
+
+        if (chemicals.length === 0) {
+            container.innerHTML = '<div class="loading">No chemicals found in database.</div>';
+            return;
+        }
+
+        container.innerHTML = chemicals.map(chemical => createChemicalCard(chemical)).join('');
+    }
+
+    function createChemicalCard(chemical) {
+        const toxicBadge = chemical.toxicState === true ?
+            '<span class="toxic-badge">⚠️ TOXIC</span>' :
+            chemical.toxicState === false ?
+            '<span class="safe-badge">✅ SAFE</span>' : '';
+
+        return `
+            <div class="chemical-card">
+                <div class="chemical-name">${chemical.name} ${toxicBadge}</div>
+
+                <div class="chemical-info">
+                    <div class="info-row">
+                        <span class="info-label">ID:</span>
+                        <span class="info-value">${chemical.id}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">CAS No:</span>
+                        <span class="info-value ${!chemical.casNo ? 'empty-value' : ''}">${chemical.casNo || 'Not specified'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Storage:</span>
+                        <span class="info-value ${!chemical.storage ? 'empty-value' : ''}">${chemical.storage || 'Not specified'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Responsible:</span>
+                        <span class="info-value ${!chemical.responsible ? 'empty-value' : ''}">${chemical.responsible || 'Not assigned'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Weight:</span>
+                        <span class="info-value ${!chemical.weight ? 'empty-value' : ''}">${chemical.weight || 'Not specified'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">QR Code:</span>
+                        <span class="info-value ${!chemical.qrCode ? 'empty-value' : ''}">${chemical.qrCode || 'Not generated'}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function filterChemicals(searchTerm) {
+        const filtered = allChemicals.filter(chemical =>
+            chemical.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (chemical.casNo && chemical.casNo.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (chemical.storage && chemical.storage.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (chemical.responsible && chemical.responsible.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
+
+        displayChemicals(filtered);
+    }
+
+    function showStatus(message, type) {
+        const statusDiv = document.getElementById('statusMessage');
+        statusDiv.textContent = message;
+        statusDiv.className = `status-message status-${type}`;
+        statusDiv.style.display = 'block';
+
+        setTimeout(() => {
+            statusDiv.style.display = 'none';
+        }, 5000);
+    }
+</script>
+</body>
+</html>

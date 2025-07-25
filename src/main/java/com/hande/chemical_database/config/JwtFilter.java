@@ -21,7 +21,7 @@ import java.io.IOException;
  * handebarkan
  */
 
-@Component
+//@Component
 public class JwtFilter extends OncePerRequestFilter {
 
     @Autowired

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chemical Database System</title>
+  <title>Study List Management System</title>
   <style>
     body {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -39,46 +39,6 @@
         margin: 0;
         font-size: 1.2em;
         opacity: 0.9;
-    }
-    .auth-buttons {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        display: flex;
-        gap: 10px;
-    }
-    .auth-btn {
-        background: rgba(255,255,255,0.2);
-        color: white;
-        border: 1px solid rgba(255,255,255,0.3);
-        padding: 8px 16px;
-        border-radius: 6px;
-        text-decoration: none;
-        font-size: 14px;
-        transition: all 0.3s;
-    }
-    .auth-btn:hover {
-        background: rgba(255,255,255,0.3);
-        color: white;
-        text-decoration: none;
-    }
-    .user-info {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        color: white;
-        font-size: 14px;
-        display: none;
-    }
-    .user-info button {
-        background: rgba(255,255,255,0.2);
-        color: white;
-        border: 1px solid rgba(255,255,255,0.3);
-        padding: 6px 12px;
-        border-radius: 4px;
-        cursor: pointer;
-        margin-left: 10px;
-        font-size: 12px;
     }
     .content {
         padding: 40px;
@@ -162,13 +122,6 @@
         background: #e67e22;
         box-shadow: 0 6px 25px rgba(243, 156, 18, 0.3);
     }
-    .btn.admin {
-        background: #9b59b6;
-    }
-    .btn.admin:hover {
-        background: #8e44ad;
-        box-shadow: 0 6px 25px rgba(155, 89, 182, 0.3);
-    }
     .btn-icon {
         font-size: 2em;
         margin-bottom: 10px;
@@ -207,7 +160,7 @@
         font-size: 0.9em;
         font-weight: 500;
     }
-    .demo-credentials {
+    .demo-info {
         background: #fff3cd;
         border: 1px solid #ffeaa7;
         color: #856404;
@@ -216,11 +169,11 @@
         margin-bottom: 20px;
         text-align: center;
     }
-    .demo-credentials h4 {
+    .demo-info h4 {
         margin: 0 0 10px 0;
         color: #856404;
     }
-    .demo-credentials p {
+    .demo-info p {
         margin: 5px 0;
         font-size: 14px;
     }
@@ -229,54 +182,41 @@
 <body>
 <div class="container">
   <div class="header">
-    <!-- Authentication buttons (shown when not logged in) -->
-    <div class="auth-buttons" id="authButtons">
-      <a href="/login" class="auth-btn">🔐 Login</a>
-      <a href="/register" class="auth-btn">👤 Register</a>
-    </div>
-
-    <!-- User info (shown when logged in) -->
-    <div class="user-info" id="userInfo">
-      <span>Welcome, <span id="username"></span>!</span>
-      <button onclick="logout()">Logout</button>
-    </div>
-
-    <h1>🧪 Chemical Database</h1>
-    <p>Complete Chemical Inventory Management System with QR Code Integration</p>
+    <h1>📋 Study List Management</h1>
+    <p>E&L Laboratory Studies Database with QR Code Integration</p>
   </div>
 
   <div class="content">
-    <!-- Demo Credentials Info -->
-    <div class="demo-credentials">
-      <h4>🔑 Demo Login Credentials</h4>
-      <p><strong>Admin:</strong> username: admin, password: password</p>
-      <p><strong>Lab Tech:</strong> username: labtech1, password: password</p>
-      <p><strong>Scientist:</strong> username: scientist1, password: password</p>
+    <!-- Demo Info -->
+    <div class="demo-info">
+      <h4>🔓 Open Access System</h4>
+      <p>This system has no authentication - all features are available to everyone.</p>
+      <p>Perfect for laboratory environments where quick access to study information is essential.</p>
     </div>
 
     <div class="features">
       <div class="feature">
-        <div class="feature-icon">📋</div>
-        <h3>Inventory Management</h3>
-        <p>Complete CRUD operations for chemical database with advanced filtering and search</p>
+        <div class="feature-icon">📊</div>
+        <h3>Study Management</h3>
+        <p>Complete CRUD operations for study database with advanced filtering and search</p>
       </div>
 
       <div class="feature">
         <div class="feature-icon">📱</div>
         <h3>QR Code Integration</h3>
-        <p>Auto-generated QR codes for each chemical with web-based scanner</p>
+        <p>Auto-generated QR codes for each study with web-based scanner</p>
       </div>
 
       <div class="feature">
-        <div class="feature-icon">🔒</div>
-        <h3>Secure Access</h3>
-        <p>JWT-based authentication with role-based access control</p>
+        <div class="feature-icon">🔍</div>
+        <h3>Advanced Search</h3>
+        <p>Search by study code, material type, responsible person, and status</p>
       </div>
 
       <div class="feature">
-        <div class="feature-icon">📊</div>
+        <div class="feature-icon">📋</div>
         <h3>CSV Import/Export</h3>
-        <p>Bulk import chemicals from CSV files with validation and export functionality</p>
+        <p>Bulk import studies from Excel/CSV files with validation and export functionality</p>
       </div>
     </div>
 
@@ -284,31 +224,25 @@
       <a href="/scanner" class="btn primary">
         <div class="btn-icon">📱</div>
         <div class="btn-text">QR Scanner</div>
-        <div class="btn-desc">Scan chemical QR codes</div>
+        <div class="btn-desc">Scan study QR codes</div>
       </a>
 
-      <a href="#" onclick="navigateToChemicals()" class="btn success" id="chemicalsBtn">
+      <a href="/studies-with-qr" class="btn success">
         <div class="btn-icon">📋</div>
-        <div class="btn-text">View Chemicals</div>
-        <div class="btn-desc">Browse chemical database</div>
+        <div class="btn-text">View Studies</div>
+        <div class="btn-desc">Browse study database</div>
       </a>
 
-      <a href="#" onclick="navigateToCsv()" class="btn warning" id="csvBtn">
+      <a href="/csv-import-export" class="btn warning">
         <div class="btn-icon">📊</div>
         <div class="btn-text">CSV Import/Export</div>
-        <div class="btn-desc">Bulk manage chemicals</div>
+        <div class="btn-desc">Bulk manage studies</div>
       </a>
 
-      <a href="/admin" class="btn admin" id="adminBtn" style="display: none;">
-        <div class="btn-icon">⚙️</div>
-        <div class="btn-text">Admin Dashboard</div>
-        <div class="btn-desc">System administration</div>
-      </a>
-
-      <a href="#" onclick="showApiInfo()" class="btn">
-        <div class="btn-icon">🔗</div>
-        <div class="btn-text">API Documentation</div>
-        <div class="btn-desc">View API endpoints</div>
+      <a href="/test-db" class="btn">
+        <div class="btn-icon">🔍</div>
+        <div class="btn-text">Test Database</div>
+        <div class="btn-desc">Check system status</div>
       </a>
     </div>
 
@@ -317,157 +251,31 @@
       <p>Built with modern technologies for reliability and performance</p>
       <div class="tech-stack">
         <span class="tech-badge">Spring Boot 3.4.2</span>
-        <span class="tech-badge">Spring Security</span>
         <span class="tech-badge">H2 Database</span>
-        <span class="tech-badge">JWT Authentication</span>
         <span class="tech-badge">ZXing QR Codes</span>
         <span class="tech-badge">Thymeleaf</span>
         <span class="tech-badge">MapStruct</span>
         <span class="tech-badge">OpenCSV</span>
+        <span class="tech-badge">Bootstrap CSS</span>
       </div>
+    </div>
+
+    <div class="info-section">
+      <h3>📋 Study Information Fields</h3>
+      <p>Each study contains the following information:</p>
+      <ul style="text-align: left; max-width: 600px; margin: 20px auto;">
+        <li><strong>Study Code:</strong> Unique identifier (e.g., CMQ_STD_001)</li>
+        <li><strong>Document Codes:</strong> Protocol and report references</li>
+        <li><strong>Material Type:</strong> Type of material being studied</li>
+        <li><strong>Study Level:</strong> Classification level (A, B, C)</li>
+        <li><strong>Risk Level:</strong> Safety risk assessment (Low, Medium, High)</li>
+        <li><strong>Number of Samples:</strong> Sample count and identifiers</li>
+        <li><strong>Object of Study:</strong> What is being analyzed</li>
+        <li><strong>Responsible Person:</strong> Study coordinator</li>
+        <li><strong>Status:</strong> Current study status</li>
+      </ul>
     </div>
   </div>
 </div>
-
-<script>
-  // Check authentication status on page load
-  document.addEventListener('DOMContentLoaded', function() {
-      checkAuthStatus();
-  });
-
-  async function checkAuthStatus() {
-      const token = getAuthToken();
-      const username = localStorage.getItem('username');
-
-      if (token && username) {
-          try {
-              // Verify token is still valid
-              const response = await fetch('/api/profile', {
-                  headers: {
-                      'Authorization': `Bearer ${token}`
-                  }
-              });
-
-              if (response.ok) {
-                  const profile = await response.json();
-                  showUserInfo(profile.username);
-
-                  // Show admin button if user has admin role
-                  if (profile.authorities && profile.authorities.some(auth => auth.authority === 'ROLE_ADMIN')) {
-                      document.getElementById('adminBtn').style.display = 'flex';
-                  }
-              } else {
-                  // Token invalid, clear storage
-                  clearAuth();
-                  showAuthButtons();
-              }
-          } catch (error) {
-              console.error('Error checking auth status:', error);
-              clearAuth();
-              showAuthButtons();
-          }
-      } else {
-          showAuthButtons();
-      }
-  }
-
-  function showUserInfo(username) {
-      document.getElementById('authButtons').style.display = 'none';
-      document.getElementById('userInfo').style.display = 'block';
-      document.getElementById('username').textContent = username;
-  }
-
-  function showAuthButtons() {
-      document.getElementById('authButtons').style.display = 'flex';
-      document.getElementById('userInfo').style.display = 'none';
-      document.getElementById('adminBtn').style.display = 'none';
-  }
-
-  function logout() {
-      if (confirm('Are you sure you want to logout?')) {
-          clearAuth();
-          showAuthButtons();
-          window.location.reload();
-      }
-  }
-
-  function clearAuth() {
-      localStorage.removeItem('jwt-token');
-      sessionStorage.removeItem('jwt-token');
-      localStorage.removeItem('username');
-  }
-
-  function getAuthToken() {
-      return localStorage.getItem('jwt-token') || sessionStorage.getItem('jwt-token');
-  }
-
-  function navigateToChemicals() {
-      const token = getAuthToken();
-      if (token) {
-          window.location.href = '/chemicals-with-qr';
-      } else {
-          if (confirm('You need to log in to access the chemical database. Would you like to log in now?')) {
-              window.location.href = '/login';
-          }
-      }
-  }
-
-  function navigateToCsv() {
-      const token = getAuthToken();
-      if (token) {
-          window.location.href = '/csv-import-export';
-      } else {
-          if (confirm('You need to log in to access CSV import/export. Would you like to log in now?')) {
-              window.location.href = '/login';
-          }
-      }
-  }
-
-  function showApiInfo() {
-      alert(`🔗 Chemical Database API Endpoints:
-
-🔐 Authentication:
-• POST /api/register - Register new user
-• POST /api/login - User login
-• POST /api/logout - User logout
-• GET /api/profile - Get user profile
-
-🧪 Chemicals:
-• GET /api/chemicals - List all chemicals
-• POST /api/chemicals - Create new chemical
-• PUT /api/chemicals - Update chemical
-• DELETE /api/chemicals/{id} - Delete chemical
-• GET /api/chemicals/search?name=... - Search by name
-• GET /api/chemicals/filter?... - Filter chemicals
-
-📊 CSV Operations:
-• POST /api/chemicals/upload-csv - Import from CSV
-• GET /api/chemicals/export-csv - Export to CSV
-
-📱 QR Codes:
-• POST /api/chemicals/{id}/generate-qr - Generate QR
-• GET /api/chemicals/{id}/qr-image - Get QR image
-• POST /api/chemicals/{id}/regenerate-qr - Regenerate QR
-• GET /qr/{qrCodeId} - View chemical info
-
-👥 Admin (Admin role required):
-• GET /api/admin/users - List all users
-• POST /api/admin/users - Create user
-• PUT /api/admin/users/{id} - Update user
-• DELETE /api/admin/users/{id} - Delete user
-• POST /api/admin/users/{id}/reset-password - Reset password
-
-🌐 Web Interface:
-• /login - Login page
-• /register - Registration page
-• /scanner - QR code scanner
-• /chemicals-with-qr - Chemical management
-• /csv-import-export - CSV operations
-• /admin - Admin dashboard (Admin only)
-
-Base URL: ${window.location.origin}
-Authentication: Bearer token required for most endpoints`);
-  }
-</script>
 </body>
 </html>

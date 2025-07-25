@@ -10,7 +10,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 @RequiredArgsConstructor
 @Slf4j
-public class ChemicalDatabaseApplication implements CommandLineRunner {
+public class ChemicalDatabaseApplication {
 
 	private final AdminService adminService;
 
@@ -18,16 +18,16 @@ public class ChemicalDatabaseApplication implements CommandLineRunner {
 		SpringApplication.run(ChemicalDatabaseApplication.class, args);
 	}
 
-	@Override
-	public void run(String... args) throws Exception {
-		// Create default admin user if it doesn't exist
-		try {
-			adminService.createDefaultAdminIfNotExists();
-			log.info("Application started successfully");
-			log.info("Default admin credentials: username=admin, password=password");
-			log.info("Please change the default password after first login");
-		} catch (Exception e) {
-			log.error("Error during application startup", e);
-		}
-	}
+//	@Override
+//	public void run(String... args) throws Exception {
+//		// Create default admin user if it doesn't exist
+//		try {
+//			adminService.createDefaultAdminIfNotExists();
+//			log.info("Application started successfully");
+//			log.info("Default admin credentials: username=admin, password=password");
+//			log.info("Please change the default password after first login");
+//		} catch (Exception e) {
+//			log.error("Error during application startup", e);
+//		}
+//	}
 }

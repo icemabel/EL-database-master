@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Test</title>
+    <script src="/js/auth-check.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .result {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border-color: #f1b0b7;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🔐 Authentication Debug Page</h1>
+    <p>Use this page to test authentication and authorization functionality.</p>
+
+    <div>
+        <h3>Test Buttons</h3>
+        <button class="btn" onclick="testAuth()">Test Authentication Info</button>
+        <button class="btn" onclick="testChemicalAccess()">Test Chemical Access</button>
+        <button class="btn" onclick="testChemicalAPI()">Test Chemical API</button>
+        <button class="btn" onclick="testProfile()">Test Profile API</button>
+    </div>
+
+    <div>
+        <h3>Quick Access</h3>
+        <button class="btn" onclick="goToChemicals()">Go to Chemicals Page</button>
+        <button class="btn" onclick="goToCSV()">Go to CSV Page</button>
+        <button class="btn" onclick="logout()">Logout</button>
+    </div>
+
+    <div id="results"></div>
+</div>
+
+<script>
+    function showResult(title, data, isError = false) {
+        const results = document.getElementById('results');
+        const resultDiv = document.createElement('div');
+        resultDiv.className = `result ${isError ? 'error' : 'success'}`;
+        resultDiv.innerHTML = `<strong>${title}</strong>\n${JSON.stringify(data, null, 2)}`;
+        results.appendChild(resultDiv);
+    }
+
+    async function testAuth() {
+        try {
+            const token = getAuthToken();
+            if (!token) {
+                showResult('Authentication Test', 'No token found - please login first', true);
+                return;
+            }
+
+            const response = await fetch('/api/debug/auth', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const data = await response.json();
+            showResult('Authentication Debug Info', data);
+        } catch (error) {
+            showResult('Authentication Test Error', error.message, true);
+        }
+    }
+
+    async function testChemicalAccess() {
+        try {
+            const token = getAuthToken();
+            if (!token) {
+                showResult('Chemical Access Test', 'No token found - please login first', true);
+                return;
+            }
+
+            const response = await fetch('/api/debug/test-chemical-access', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const data = await response.json();
+            showResult('Chemical Access Test', data, !data.shouldHaveAccess);
+        } catch (error) {
+            showResult('Chemical Access Test Error', error.message, true);
+        }
+    }
+
+    async function testChemicalAPI() {
+        try {
+            const token = getAuthToken();
+            if (!token) {
+                showResult('Chemical API Test', 'No token found - please login first', true);
+                return;
+            }
+
+            const response = await fetch('/api/chemicals', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                showResult('Chemical API Test', `Success! Found ${data.length} chemicals`);
+            } else {
+                showResult('Chemical API Test', `Failed with status: ${response.status}`, true);
+            }
+        } catch (error) {
+            showResult('Chemical API Test Error', error.message, true);
+        }
+    }
+
+    async function testProfile() {
+        try {
+            const token = getAuthToken();
+            if (!token) {
+                showResult('Profile Test', 'No token found - please login first', true);
+                return;
+            }
+
+            const response = await fetch('/api/profile', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const data = await response.json();
+            showResult('Profile Test', data);
+        } catch (error) {
+            showResult('Profile Test Error', error.message, true);
+        }
+    }
+
+    function goToChemicals() {
+        const token = getAuthToken();
+        if (!token) {
+            if (confirm('You need to log in to access the chemical database. Would you like to log in now?')) {
+                window.location.href = '/login';
+            }
+            return;
+        }
+
+        // Navigate directly - the page will handle authentication
+        window.location.href = '/chemicals-with-qr';
+    }
+
+    function goToCSV() {
+        const token = getAuthToken();
+        if (!token) {
+            if (confirm('You need to log in to access CSV import/export. Would you like to log in now?')) {
+                window.location.href = '/login';
+            }
+            return;
+        }
+
+        // Navigate directly - the page will handle authentication
+        window.location.href = '/csv-import-export';
+    }
+
+    function logout() {
+        localStorage.removeItem('jwt-token');
+        sessionStorage.removeItem('jwt-token');
+        localStorage.removeItem('username');
+        window.location.href = '/login';
+    }
+
+    function getAuthToken() {
+        return localStorage.getItem('jwt-token') || sessionStorage.getItem('jwt-token');
+    }
+
+    // Load chemicals when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check authentication first
+        checkAuth();
+    });
+
+    async function checkAuth() {
+        const token = getAuthToken();
+        const username = localStorage.getItem('username');
+
+        if (!token || !username) {
+            showResult('Authentication Status', 'Not logged in - please login first', true);
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/profile', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                const profile = await response.json();
+                showResult('Authentication Status', `Logged in as: ${profile.username} with role: ${profile.role}`);
+            } else {
+                showResult('Authentication Status', 'Token invalid - please login again', true);
+            }
+        } catch (error) {
+            showResult('Authentication Status', `Error checking auth: ${error.message}`, true);
+        }
+    }
+</script>
+</body>
+</html>

@@ -1,5 +1,10 @@
 package com.hande.chemical_database.controllers;
 
+// UserController temporarily disabled for testing without authentication
+// Uncomment and fix when adding authentication back
+
+/*
+
 import com.hande.chemical_database.entities.UserProfile;
 import com.hande.chemical_database.enums.UserRole;
 import com.hande.chemical_database.models.UserDTO;
@@ -29,6 +34,7 @@ public class UserController {
     private final JwtService jwtService;
     private final AuthenticationManager authManager;
 
+    // Web pages for authentication
     @GetMapping("/login")
     public String loginPage() {
         return "login";
@@ -39,6 +45,7 @@ public class UserController {
         return "register";
     }
 
+    // API endpoints for authentication
     @PostMapping("/api/register")
     @ResponseBody
     public ResponseEntity<Map<String, String>> register(@RequestBody UserDTO userDTO) {
@@ -61,24 +68,13 @@ public class UserController {
                 return ResponseEntity.badRequest().body(response);
             }
 
-            // Set default role if not provided or invalid
-            UserRole assignedRole = UserRole.USER; // Default role for new registrations
-            if (userDTO.getRole() != null) {
-                try {
-                    assignedRole = userDTO.getRole();
-                    // Only allow LAB_USER role for self-registration (security)
-                    if (assignedRole != UserRole.USER) {
-                        log.warn("User {} attempted to register with role {}, defaulting to LAB_USER",
-                                userDTO.getUsername(), assignedRole);
-                        assignedRole = UserRole.USER;
-                    }
-                } catch (Exception e) {
-                    log.warn("Invalid role provided during registration, using default");
-                    assignedRole = UserRole.USER;
-                }
+            // Check if user already exists
+            if (userDetailsService.userExists(userDTO.getUsername().trim())) {
+                response.put("error", "Username already exists");
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
             }
 
-            // Create user profile
+            // Create user profile with explicit USER role
             UserProfile user = UserProfile.builder()
                     .username(userDTO.getUsername().trim())
                     .password(userDTO.getPassword())
@@ -86,9 +82,9 @@ public class UserController {
                     .last_name(userDTO.getLast_name())
                     .email(userDTO.getEmail().trim())
                     .phone_number(userDTO.getPhone_number())
-                    .position(userDTO.getPosition() != null ? userDTO.getPosition() : "")
-                    .duration(0)
-                    .role(assignedRole)
+                    .position(userDTO.getPosition() != null ? userDTO.getPosition() : "User")
+                    .duration(userDTO.getDuration())
+                    .role(UserRole.USER) // Explicitly set USER role
                     .build();
 
             UserProfile savedUser = userDetailsService.saveUser(user);
@@ -97,7 +93,7 @@ public class UserController {
 
             response.put("message", "User registered successfully");
             response.put("username", savedUser.getUsername());
-            response.put("role", savedUser.getRole().name());
+            response.put("role", savedUser.getRole().toString());
 
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
 
@@ -116,32 +112,54 @@ public class UserController {
 
     @PostMapping("/api/login")
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> login(@RequestBody UserDTO userDTO) {
-        Map<String, Object> response = new HashMap<>();
+    public ResponseEntity<Map<String, String>> login(@RequestBody UserDTO userDTO) {
+        Map<String, String> response = new HashMap<>();
 
         try {
+            // Validate input
             if (userDTO.getUsername() == null || userDTO.getPassword() == null) {
                 response.put("error", "Username and password are required");
                 return ResponseEntity.badRequest().body(response);
             }
 
+            String username = userDTO.getUsername().trim();
+
+            // Debug: Check user in database before authentication
+            var userProfile = userDetailsService.getUserByUsername(username);
+            if (userProfile.isPresent()) {
+                log.debug("User found in database: {} with role: {}", username, userProfile.get().getRole());
+            } else {
+                log.warn("User not found in database: {}", username);
+                response.put("error", "Invalid username or password");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+
+            // Authenticate user
             Authentication authentication = authManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            userDTO.getUsername().trim(),
-                            userDTO.getPassword()
-                    )
+                    new UsernamePasswordAuthenticationToken(username, userDTO.getPassword())
             );
 
             if (authentication.isAuthenticated()) {
-                String token = jwtService.generateToken(userDTO.getUsername().trim());
+                // Generate JWT token
+                String token = jwtService.generateToken(username);
+
+                // Get user details for response
                 UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+
+                // Debug: Log authorities
+                log.debug("User authenticated: {} with authorities: {}",
+                        userDetails.getUsername(), userDetails.getAuthorities());
 
                 response.put("token", token);
                 response.put("username", userDetails.getUsername());
-                response.put("authorities", userDetails.getAuthorities());
                 response.put("message", "Login successful");
 
-                log.info("User logged in: {}", userDetails.getUsername());
+                // Add role information to response
+                String roleInfo = userDetails.getAuthorities().toString();
+                response.put("authorities", roleInfo);
+
+                log.info("User logged in: {} with authorities: {}", userDetails.getUsername(), roleInfo);
+
                 return ResponseEntity.ok(response);
             } else {
                 response.put("error", "Authentication failed");
@@ -149,9 +167,10 @@ public class UserController {
             }
 
         } catch (AuthenticationException e) {
-            log.warn("Authentication failed for user: {}", userDTO.getUsername());
+            log.warn("Authentication failed for user: {} - {}", userDTO.getUsername(), e.getMessage());
             response.put("error", "Invalid username or password");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+
         } catch (Exception e) {
             log.error("Error during login for user: {}", userDTO.getUsername(), e);
             response.put("error", "Login failed: " + e.getMessage());
@@ -183,6 +202,18 @@ public class UserController {
 
             response.put("username", userDetails.getUsername());
             response.put("authorities", userDetails.getAuthorities());
+            response.put("authenticated", true);
+
+            // Add additional user profile information
+            var userProfile = userDetailsService.getUserByUsername(username);
+            if (userProfile.isPresent()) {
+                UserProfile user = userProfile.get();
+                response.put("email", user.getEmail());
+                response.put("firstName", user.getFirst_name());
+                response.put("lastName", user.getLast_name());
+                response.put("position", user.getPosition());
+                response.put("role", user.getRole().toString());
+            }
 
             return ResponseEntity.ok(response);
 
@@ -193,3 +224,5 @@ public class UserController {
         }
     }
 }
+
+ */

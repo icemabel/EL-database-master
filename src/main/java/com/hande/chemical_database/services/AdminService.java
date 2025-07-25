@@ -1,6 +1,7 @@
 package com.hande.chemical_database.services;
 
 import com.hande.chemical_database.entities.UserProfile;
+import com.hande.chemical_database.enums.UserRole;
 import com.hande.chemical_database.models.UserDTO;
 import com.hande.chemical_database.repositories.UserRepo;
 import lombok.RequiredArgsConstructor;
@@ -46,10 +47,11 @@ public class AdminService {
                 .phone_number(userDTO.getPhone_number())
                 .position(userDTO.getPosition())
                 .duration(userDTO.getDuration())
+                .role(userDTO.getRole() != null ? userDTO.getRole() : UserRole.USER) // Set role
                 .build();
 
         UserProfile savedUser = userRepo.save(user);
-        log.info("Admin created new user: {}", savedUser.getUsername());
+        log.info("Admin created new user: {} with role: {}", savedUser.getUsername(), savedUser.getRole());
         return savedUser;
     }
 
@@ -72,6 +74,7 @@ public class AdminService {
         existingUser.setPhone_number(userDTO.getPhone_number());
         existingUser.setPosition(userDTO.getPosition());
         existingUser.setDuration(userDTO.getDuration());
+        existingUser.setRole(userDTO.getRole() != null ? userDTO.getRole() : UserRole.USER); // Update role
 
         // Update password only if provided
         if (userDTO.getPassword() != null && !userDTO.getPassword().trim().isEmpty()) {
@@ -79,7 +82,7 @@ public class AdminService {
         }
 
         UserProfile updatedUser = userRepo.save(existingUser);
-        log.info("Admin updated user: {}", updatedUser.getUsername());
+        log.info("Admin updated user: {} with role: {}", updatedUser.getUsername(), updatedUser.getRole());
         return updatedUser;
     }
 
@@ -87,7 +90,7 @@ public class AdminService {
         Optional<UserProfile> user = userRepo.findById(userId);
         if (user.isPresent()) {
             // Don't allow deletion of admin user
-            if ("admin".equals(user.get().getUsername())) {
+            if ("ADMIN".equals(user.get().getRole())) {
                 throw new RuntimeException("Cannot delete admin user");
             }
 
@@ -122,6 +125,12 @@ public class AdminService {
                 .toList();
     }
 
+    public List<UserProfile> getUsersByRole(String role) {
+        return userRepo.findAll().stream()
+                .filter(user -> role.equals(user.getRole()))
+                .toList();
+    }
+
     public void createDefaultAdminIfNotExists() {
         // Check if admin user exists
         Optional<UserProfile> adminUser = userRepo.findByUsername("admin");
@@ -136,6 +145,7 @@ public class AdminService {
                     .phone_number("123-456-7890")
                     .position("Administrator")
                     .duration(0)
+                    .role(UserRole.ADMIN) // Set admin role
                     .build();
 
             userRepo.save(admin);
