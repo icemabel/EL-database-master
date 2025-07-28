@@ -37,8 +37,8 @@ public class ChemicalsFilteringImpl implements ChemicalsFiltering {
     }
 
     @Override
-    public List<Chemicals> searchByCASNo(String CASNo) {
-        return chemicalRepo.findByCasNo(CASNo);
+    public List<Chemicals> searchByCASNo(String CasNo) {
+        return chemicalRepo.findByCasNo(CasNo);
     }
 
     @Override

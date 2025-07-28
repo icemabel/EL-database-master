@@ -15,8 +15,8 @@ import java.util.*;
  * This controller provides API endpoints for studies using in-memory storage
  * Use this when you don't have database services set up yet
  */
-@Controller
-@RequestMapping("/api/studies-memory")  // CHANGED: Different base path to avoid conflicts
+//@Controller
+//@RequestMapping("/api/studies-memory")  // CHANGED: Different base path to avoid conflicts
 @Slf4j
 public class StudyListInMemoryController {
 

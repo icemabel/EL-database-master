@@ -21,6 +21,12 @@ public class StudyListUploadCsvImpl implements StudyListUploadCsv {
     private final StudyListRepo studyListRepo;
 
     @Override
+    public String uploadStudyListsFromCsv(MultipartFile file) {
+        Integer count = uploadStudyLists(file);
+        return String.format("Successfully uploaded %d studies from CSV file", count);
+    }
+
+    @Override
     public Integer uploadStudyLists(MultipartFile file) {
         validateFile(file);
 
@@ -36,42 +42,47 @@ public class StudyListUploadCsvImpl implements StudyListUploadCsv {
         }
 
         if (studyListsSet.isEmpty()) {
-            throw new IllegalArgumentException("No valid study records found in CSV file. Check that your file has the correct columns: Study Code, Document codes protocol & report, Material type, Study Level, Risk Level, Info, Number of Samples / Sample ID, Object of study, Responsible Person, Status");
+            throw new IllegalArgumentException("No valid study records found in CSV file. Please check the format and column headers.");
         }
 
-        // Check for existing studies and filter them out
-        List<String> existingStudyCodes = studyListRepo.findAllStudyCodes();
-        Set<StudyList> newStudies = studyListsSet.stream()
-                .filter(study -> !existingStudyCodes.contains(study.getStudyCode()))
+        // Get existing study codes to check for duplicates
+        Set<String> existingCodes = studyListRepo.findAllStudyCodes()
+                .stream()
+                .map(String::toLowerCase)
                 .collect(Collectors.toSet());
 
+        // Filter out duplicates and save
+        List<StudyList> newStudies = studyListsSet.stream()
+                .filter(study -> {
+                    String code = study.getStudyCode();
+                    if (code == null) return false;
+                    return !existingCodes.contains(code.toLowerCase());
+                })
+                .collect(Collectors.toList());
+
         if (newStudies.isEmpty()) {
-            log.info("All studies in CSV already exist in database");
-            return 0;
+            throw new IllegalArgumentException("All studies in the CSV file already exist in the database.");
         }
 
-        // Save new studies
         List<StudyList> savedStudies = studyListRepo.saveAll(newStudies);
-
-        int skippedCount = studyListsSet.size() - newStudies.size();
-        log.info("CSV upload completed: {} new studies saved, {} existing studies skipped",
-                savedStudies.size(), skippedCount);
+        log.info("Successfully saved {} studies from CSV file", savedStudies.size());
 
         return savedStudies.size();
     }
 
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("File is empty or null");
+            throw new IllegalArgumentException("File cannot be empty");
         }
 
-        String originalFilename = file.getOriginalFilename();
-        if (originalFilename == null || !originalFilename.toLowerCase().endsWith(".csv")) {
-            throw new IllegalArgumentException("File must be a CSV file (.csv extension required)");
+        String filename = file.getOriginalFilename();
+        if (filename == null || !filename.toLowerCase().endsWith(".csv")) {
+            throw new IllegalArgumentException("File must be a CSV file");
         }
 
-        if (file.getSize() > 10 * 1024 * 1024) { // 10MB limit
-            throw new IllegalArgumentException("File size exceeds 10MB limit");
+        // Check file size (max 10MB)
+        if (file.getSize() > 10 * 1024 * 1024) {
+            throw new IllegalArgumentException("File size cannot exceed 10MB");
         }
     }
 
@@ -82,151 +93,156 @@ public class StudyListUploadCsvImpl implements StudyListUploadCsv {
             String line;
             boolean isFirstLine = true;
             String[] headers = null;
-            char delimiter = ';'; // Default to semicolon for European Excel
+            char delimiter = detectDelimiter(file);
+
+            log.info("Detected delimiter: '{}'", delimiter);
 
             while ((line = reader.readLine()) != null) {
                 line = line.trim();
-                if (line.isEmpty()) {
-                    continue;
-                }
+                if (line.isEmpty()) continue;
 
                 if (isFirstLine) {
-                    // Detect delimiter from first line
-                    delimiter = detectDelimiter(line);
                     headers = parseCSVLine(line, delimiter);
+
+                    // Clean headers
+                    for (int i = 0; i < headers.length; i++) {
+                        headers[i] = cleanHeader(headers[i]);
+                    }
+
+                    log.info("CSV Headers detected: {}", Arrays.toString(headers));
+                    validateHeaders(headers);
                     isFirstLine = false;
-                    log.info("CSV: Headers detected: {}", Arrays.toString(headers));
-                    log.info("CSV: Using delimiter: '{}'", delimiter);
-                    continue;
-                }
-
-                if (headers == null) {
-                    continue;
-                }
-
-                // Parse CSV line with detected delimiter
-                String[] values = parseCSVLine(line, delimiter);
-
-                if (values.length == 0) {
-                    continue;
-                }
-
-                // Create study object from CSV row
-                StudyList study = createStudyFromCSVRow(headers, values);
-                if (study != null) {
-                    studies.add(study);
+                } else {
+                    String[] values = parseCSVLine(line, delimiter);
+                    StudyList study = createStudyFromCsvRow(headers, values);
+                    if (study != null && study.getStudyCode() != null && !study.getStudyCode().trim().isEmpty()) {
+                        studies.add(study);
+                    }
                 }
             }
         }
 
-        log.info("CSV: Processed {} studies from file", studies.size());
+        log.info("Parsed {} studies from CSV", studies.size());
         return studies;
     }
 
-    private char detectDelimiter(String line) {
-        // Remove any carriage returns and newlines for analysis
-        line = line.replaceAll("[\\r\\n]", "");
+    private char detectDelimiter(MultipartFile file) throws IOException {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), "UTF-8"))) {
+            String firstLine = reader.readLine();
+            if (firstLine == null) return ';';
 
-        int commaCount = 0;
-        int semicolonCount = 0;
-        boolean inQuotes = false;
+            // Count occurrences of potential delimiters
+            long semicolonCount = firstLine.chars().filter(ch -> ch == ';').count();
+            long commaCount = firstLine.chars().filter(ch -> ch == ',').count();
+            long tabCount = firstLine.chars().filter(ch -> ch == '\t').count();
 
-        for (char c : line.toCharArray()) {
-            if (c == '"') {
-                inQuotes = !inQuotes;
-            } else if (!inQuotes) {
-                if (c == ',') {
-                    commaCount++;
-                } else if (c == ';') {
-                    semicolonCount++;
-                }
-            }
-        }
+            // Use semicolon by default (European standard), then comma, then tab
+            if (semicolonCount > 0) return ';';
+            if (commaCount > 0) return ',';
+            if (tabCount > 0) return '\t';
 
-        log.info("CSV: Delimiter detection - Commas: {}, Semicolons: {}", commaCount, semicolonCount);
-
-        // If we have semicolons, use semicolons (even if there are also commas)
-        // This handles European CSV format preference
-        if (semicolonCount > 0) {
-            return ';';
-        } else if (commaCount > 0) {
-            return ',';
-        } else {
-            // Default to semicolon for European format
-            return ';';
+            return ';'; // Default fallback
         }
     }
 
-    private StudyList createStudyFromCSVRow(String[] headers, String[] values) {
+    private void validateHeaders(String[] headers) {
+        // Required headers (case-insensitive matching)
+        Set<String> requiredHeaders = Set.of(
+                "study code", "studycode",
+                "document codes protocol & report", "document codes", "documentcodes",
+                "material type", "materialtype",
+                "study level", "studylevel",
+                "risk level", "risklevel",
+                "responsible person", "responsibleperson"
+        );
+
+        Set<String> normalizedHeaders = Arrays.stream(headers)
+                .map(this::cleanHeader)
+                .collect(Collectors.toSet());
+
+        boolean hasStudyCode = normalizedHeaders.stream()
+                .anyMatch(header -> header.contains("study") && header.contains("code"));
+
+        if (!hasStudyCode) {
+            throw new IllegalArgumentException(
+                    "CSV must contain a 'Study Code' column. Found headers: " + String.join(", ", headers)
+            );
+        }
+    }
+
+    private StudyList createStudyFromCsvRow(String[] headers, String[] values) {
         try {
-            StudyList.StudyListBuilder builder = StudyList.builder();
+            StudyList study = new StudyList();
 
-            // Ensure we have enough values, pad with empty strings if necessary
-            String[] paddedValues = new String[headers.length];
-            for (int i = 0; i < headers.length; i++) {
-                if (i < values.length) {
-                    paddedValues[i] = values[i];
-                } else {
-                    paddedValues[i] = ""; // Fill missing values with empty string
-                }
-            }
-
-            for (int i = 0; i < headers.length; i++) {
+            for (int i = 0; i < headers.length && i < values.length; i++) {
                 String header = cleanHeader(headers[i]);
-                String value = cleanValue(paddedValues[i]);
+                String value = cleanValue(values[i]);
 
-                // Map Excel column names exactly as they appear
                 switch (header) {
                     case "study code":
-                        builder.studyCode(value);
+                    case "studycode":
+                        study.setStudyCode(value);
                         break;
                     case "document codes protocol & report":
-                        builder.documentCodes(value);
+                    case "document codes":
+                    case "documentcodes":
+                        study.setDocumentCodes(value);
                         break;
                     case "material type":
-                        builder.materialType(value);
+                    case "materialtype":
+                        study.setMaterialType(value);
                         break;
                     case "study level":
-                        builder.studyLevel(value);
+                    case "studylevel":
+                        study.setStudyLevel(value);
                         break;
                     case "risk level":
-                        builder.riskLevel(value);
+                    case "risklevel":
+                        study.setRiskLevel(value);
                         break;
                     case "info":
-                        builder.info(value);
+                    case "information":
+                        study.setInfo(value);
                         break;
                     case "number of samples / sample id":
                     case "number of samples":
                     case "sample id":
-                        builder.numberOfSamples(value);
+                    case "samples":
+                    case "numberofsamples":
+                        study.setNumberOfSamples(value);
                         break;
                     case "object of study":
-                        builder.objectOfStudy(value);
+                    case "objectofstudy":
+                        study.setObjectOfStudy(value);
                         break;
                     case "responsible person":
-                        builder.responsiblePerson(value);
+                    case "responsibleperson":
+                        study.setResponsiblePerson(value);
                         break;
                     case "status":
-                        builder.status(value);
+                        study.setStatus(value);
                         break;
                     default:
-                        log.debug("CSV: Unmapped column: '{}' with value: '{}'", header, value);
+                        log.debug("Unmapped header: '{}' with value: '{}'", header, value);
+                        break;
                 }
             }
 
-            StudyList study = builder.build();
-
             // Validate required fields
             if (study.getStudyCode() == null || study.getStudyCode().trim().isEmpty()) {
-                log.warn("CSV: Skipping row with missing study code");
+                log.warn("Skipping row with missing study code: {}", Arrays.toString(values));
                 return null;
             }
 
-            log.debug("CSV: Created study: {}", study.getStudyCode());
+            // Set default values for empty fields
+            if (study.getDocumentCodes() == null) study.setDocumentCodes("protocol / report");
+            if (study.getStatus() == null) study.setStatus("pending");
+
+            log.debug("Created study: {} with fields populated", study.getStudyCode());
             return study;
 
         } catch (Exception e) {
-            log.error("CSV: Error creating study from row: {}", Arrays.toString(values), e);
+            log.error("Error creating study from row: {}", Arrays.toString(values), e);
             return null;
         }
     }
