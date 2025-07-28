@@ -19,7 +19,7 @@ public interface ChemicalRepo extends JpaRepository<Chemicals, Long> {
 
     Optional<Chemicals> findByNameIgnoreCase(String name);
 
-    List<Chemicals> findByCASNo(String casNo);
+    List<Chemicals> findByCasNo(String casNo);
 
     @Query("SELECT c.name FROM Chemicals c")
     List<String> findAllChemicalNames();

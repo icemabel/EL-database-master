@@ -19,6 +19,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import java.util.Map;
+import java.util.HashMap;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -63,6 +65,41 @@ public class ChemicalController {
         } catch (Exception e) {
             log.error("Error getting chemical by ID: {}", id, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    // Add this method to your ChemicalController.java class:
+
+    @PutMapping("/{id}")
+    @ResponseBody
+    public ResponseEntity<ChemicalDTO> updateChemical(@PathVariable Long id, @Valid @RequestBody ChemicalDTO chemicalDTO) {
+        try {
+            log.info("Updating chemical with ID: {}", id);
+
+            // Set the ID to ensure we're updating the correct record
+            chemicalDTO.setId(id);
+
+            // Check if chemical exists first
+            Optional<ChemicalDTO> existingChemical = chemicalService.getChemicalById(id);
+            if (existingChemical.isEmpty()) {
+                log.warn("Chemical with ID {} not found for update", id);
+                return ResponseEntity.notFound().build();
+            }
+
+            // Update the chemical using the service
+            // You'll need to modify your ChemicalService to support update by ID
+            Optional<ChemicalDTO> updatedChemical = chemicalService.updateChemicalById(id, chemicalDTO);
+
+            if (updatedChemical.isPresent()) {
+                log.info("Chemical updated successfully with ID: {}", id);
+                return ResponseEntity.ok(updatedChemical.get());
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+
+        } catch (Exception e) {
+            log.error("Error updating chemical with ID: {}", id, e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
 
@@ -162,7 +199,7 @@ public class ChemicalController {
             for (ChemicalDTO chemical : chemicals) {
                 writer.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"%n",
                         escapeCSV(chemical.getName()),
-                        escapeCSV(chemical.getCASNo()),
+                        escapeCSV(chemical.getCasNo()),
                         escapeCSV(chemical.getLotNo()),
                         escapeCSV(chemical.getProducer()),
                         escapeCSV(chemical.getStorage()),
@@ -179,6 +216,74 @@ public class ChemicalController {
         } catch (Exception e) {
             log.error("Error exporting chemicals to CSV", e);
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error exporting data");
+        }
+    }
+
+    // Add these methods to your existing ChemicalController.java class
+
+    @DeleteMapping("/clear-all")
+    @ResponseBody
+    public ResponseEntity<String> clearAllChemicals() {
+        try {
+            log.info("Clearing all chemicals from database...");
+
+            List<ChemicalDTO> chemicals = chemicalService.getAllChemicals();
+            long count = chemicals.size();
+
+            // Delete all chemicals - you'll need to add this method to ChemicalRepo
+            // For now, delete one by one:
+            for (ChemicalDTO chemical : chemicals) {
+                chemicalService.deleteChemical(chemical.getId());
+            }
+
+            log.info("Successfully cleared {} chemicals from database", count);
+            return ResponseEntity.ok(String.format("Successfully cleared %d chemicals from database", count));
+
+        } catch (Exception e) {
+            log.error("Error clearing chemicals", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error clearing chemicals: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseBody
+    public ResponseEntity<String> deleteChemical(@PathVariable Long id) {
+        try {
+            log.info("Deleting chemical with ID: {}", id);
+
+            boolean deleted = chemicalService.deleteChemical(id);
+
+            if (deleted) {
+                return ResponseEntity.ok("Chemical deleted successfully");
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+
+        } catch (Exception e) {
+            log.error("Error deleting chemical with ID: {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error deleting chemical: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/count")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getChemicalCount() {
+        try {
+            List<ChemicalDTO> chemicals = chemicalService.getAllChemicals();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("total", chemicals.size());
+            response.put("toxic", chemicals.stream().filter(c -> Boolean.TRUE.equals(c.getToxicState())).count());
+            response.put("safe", chemicals.stream().filter(c -> Boolean.FALSE.equals(c.getToxicState())).count());
+            response.put("unknown", chemicals.stream().filter(c -> c.getToxicState() == null).count());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error getting chemical count", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 

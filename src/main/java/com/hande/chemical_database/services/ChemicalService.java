@@ -18,6 +18,8 @@ public interface ChemicalService {
 
     Optional<ChemicalDTO> updateChemicals(ChemicalDTO chemical);
 
+    Optional<ChemicalDTO> updateChemicalById(Long id, ChemicalDTO chemical);
+
     List<ChemicalDTO> getAllChemicals();
 
     Optional<ChemicalDTO> getChemicalById(Long id);

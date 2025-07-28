@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chemical Management - Table View</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .main-container {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        margin: 20px auto;
+        padding: 30px;
+        max-width: 95%;
+    }
+
+    .page-header {
+        background: linear-gradient(135deg, #FF6B35, #F7931E);
+        color: white;
+        padding: 25px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .page-header h1 {
+        margin-bottom: 10px;
+    }
+
+    .page-header p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 1.1em;
+    }
+
+    /* Navigation Buttons */
+    .nav-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 20px;
+        flex-wrap: wrap;
+    }
+
+    .nav-btn {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        padding: 10px 20px;
+        border-radius: 25px;
+        text-decoration: none;
+        font-size: 16px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+    }
+
+    .nav-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.5);
+        color: white;
+        text-decoration: none;
+        transform: translateY(-2px);
+    }
+
+    .nav-btn.active {
+        background: rgba(255, 255, 255, 0.9);
+        color: #FF6B35;
+        border-color: white;
+    }
+
+    .search-controls {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 15px;
+        margin-bottom: 25px;
+        border: 1px solid #e0e0e0;
+    }
+
+    .search-box {
+        position: relative;
+    }
+
+    .search-box input {
+        border-radius: 25px;
+        padding: 12px 50px 12px 20px;
+        border: 2px solid #e0e0e0;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .search-box input:focus {
+        border-color: #FF6B35;
+        box-shadow: 0 0 0 0.2rem rgba(255, 107, 53, 0.25);
+        outline: none;
+    }
+
+    .search-icon {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #666;
+    }
+
+    .filter-controls {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .filter-select {
+        border-radius: 10px;
+        border: 2px solid #e0e0e0;
+        padding: 8px 15px;
+        min-width: 120px;
+    }
+
+    .chemicals-table {
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table thead th {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        padding: 15px 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.9rem;
+        letter-spacing: 0.5px;
+    }
+
+    .table tbody tr {
+        transition: all 0.3s ease;
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(255, 107, 53, 0.1);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .table tbody td {
+        padding: 12px;
+        vertical-align: middle;
+        border-top: 1px solid #f0f0f0;
+    }
+
+    .toxic-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        background: linear-gradient(45deg, #f44336, #d32f2f);
+        color: white;
+    }
+
+    .safe-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        background: linear-gradient(45deg, #4CAF50, #45a049);
+        color: white;
+    }
+
+    .unknown-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        background: linear-gradient(45deg, #9E9E9E, #757575);
+        color: white;
+    }
+
+    .chemical-name {
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+        color: #2c3e50;
+        background: #f8f9fa;
+        padding: 4px 8px;
+        border-radius: 5px;
+        border-left: 4px solid #FF6B35;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 5px;
+    }
+
+    .btn-action {
+        padding: 6px 12px;
+        border-radius: 8px;
+        border: none;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .btn-view {
+        background: linear-gradient(45deg, #2196F3, #1976D2);
+        color: white;
+    }
+
+    .btn-qr {
+        background: linear-gradient(45deg, #9C27B0, #7B1FA2);
+        color: white;
+    }
+
+    .btn-edit {
+        background: linear-gradient(45deg, #FF9800, #F57C00);
+        color: white;
+    }
+
+    .btn-delete {
+        background: linear-gradient(45deg, #f44336, #d32f2f);
+        color: white;
+    }
+
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #666;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        color: #ddd;
+        margin-bottom: 20px;
+    }
+
+    .stats-row {
+        background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+        color: white;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+
+    .stats-item {
+        text-align: center;
+    }
+
+    .stats-number {
+        font-size: 2rem;
+        font-weight: bold;
+        display: block;
+    }
+
+    .stats-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+
+    .loading-spinner {
+        display: none;
+        text-align: center;
+        padding: 40px;
+    }
+
+    .spinner-border {
+        color: #FF6B35;
+    }
+
+    .table-responsive {
+        border-radius: 15px;
+    }
+
+    .btn-clear-all {
+        background: linear-gradient(45deg, #f44336, #d32f2f);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 25px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-clear-all:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    @media (max-width: 768px) {
+        .nav-buttons {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .nav-btn {
+            width: 200px;
+            text-align: center;
+        }
+
+        .filter-controls {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filter-select {
+            min-width: 100%;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .table tbody td {
+            padding: 8px 4px;
+            font-size: 0.9rem;
+        }
+
+        .btn-action {
+            padding: 4px 8px;
+            font-size: 0.7rem;
+        }
+    }
+  </style>
+</head>
+<body>
+<div class="container-fluid">
+  <div class="main-container">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="row align-items-center">
+        <div class="col-md-8">
+          <h1 class="mb-2">
+            <i class="fas fa-vial me-3"></i>
+            Chemical Management System
+          </h1>
+          <p class="mb-0 opacity-75">Manage and track all your laboratory chemicals</p>
+        </div>
+        <div class="col-md-4 text-end">
+          <button class="btn btn-light me-2" onclick="refreshData()">
+            <i class="fas fa-sync-alt me-2"></i>Refresh
+          </button>
+          <button class="btn btn-success" onclick="addNewChemical()">
+            <i class="fas fa-plus me-2"></i>Add Chemical
+          </button>
+        </div>
+      </div>
+
+      <!-- Navigation Buttons -->
+      <div class="nav-buttons">
+        <a href="/" class="nav-btn">🏠 Home</a>
+        <a href="/chemicals-with-qr" class="nav-btn active">🧪 Chemicals List</a>
+        <a href="/studies-with-qr" class="nav-btn">📊 Studies List</a>
+        <a href="/chemical-csv-import-export" class="nav-btn">📊 CSV Import/Export</a>
+        <a href="/scanner" class="nav-btn">📱 QR Scanner</a>
+        <button class="btn-clear-all" onclick="confirmClearAll()">
+          <i class="fas fa-trash me-2"></i>Clear All
+        </button>
+      </div>
+    </div>
+
+    <!-- Statistics Row -->
+    <div class="stats-row">
+      <div class="row">
+        <div class="col-md-3 stats-item">
+          <span class="stats-number" id="totalChemicals">0</span>
+          <span class="stats-label">Total Chemicals</span>
+        </div>
+        <div class="col-md-3 stats-item">
+          <span class="stats-number" id="toxicChemicals">0</span>
+          <span class="stats-label">Toxic</span>
+        </div>
+        <div class="col-md-3 stats-item">
+          <span class="stats-number" id="safeChemicals">0</span>
+          <span class="stats-label">Safe</span>
+        </div>
+        <div class="col-md-3 stats-item">
+          <span class="stats-number" id="unknownChemicals">0</span>
+          <span class="stats-label">Unknown Status</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search and Filter Controls -->
+    <div class="search-controls">
+      <div class="row">
+        <div class="col-md-6">
+          <div class="search-box">
+            <input type="text" id="searchInput" class="form-control"
+                   placeholder="Search chemicals by name, CAS, storage, responsible person...">
+            <i class="fas fa-search search-icon"></i>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="filter-controls">
+            <select id="toxicStateFilter" class="filter-select">
+              <option value="">All Toxicity</option>
+              <option value="true">Toxic</option>
+              <option value="false">Safe</option>
+              <option value="null">Unknown</option>
+            </select>
+            <select id="storageFilter" class="filter-select">
+              <option value="">All Storage</option>
+            </select>
+            <select id="responsibleFilter" class="filter-select">
+              <option value="">All Responsible</option>
+            </select>
+            <button class="btn btn-outline-secondary" onclick="clearFilters()">
+              <i class="fas fa-times"></i> Clear
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div class="loading-spinner" id="loadingSpinner">
+      <div class="spinner-border" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="mt-3">Loading chemicals...</p>
+    </div>
+
+    <!-- Chemicals Table -->
+    <div class="chemicals-table" id="chemicalsTable">
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+          <tr>
+            <th onclick="sortTable('name')">
+              Chemical Name <i class="fas fa-sort"></i>
+            </th>
+            <th onclick="sortTable('casNo')">
+              CAS Number <i class="fas fa-sort"></i>
+            </th>
+            <th onclick="sortTable('storage')">
+              Storage <i class="fas fa-sort"></i>
+            </th>
+            <th onclick="sortTable('responsible')">
+              Responsible <i class="fas fa-sort"></i>
+            </th>
+            <th onclick="sortTable('toxicState')">
+              Toxicity <i class="fas fa-sort"></i>
+            </th>
+            <th onclick="sortTable('weight')">
+              Weight <i class="fas fa-sort"></i>
+            </th>
+            <th onclick="sortTable('orderDate')">
+              Order Date <i class="fas fa-sort"></i>
+            </th>
+            <th>Actions</th>
+          </tr>
+          </thead>
+          <tbody id="chemicalsTableBody">
+          <!-- Table content will be populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state d-none" id="emptyState">
+      <i class="fas fa-search"></i>
+      <h4>No Chemicals Found</h4>
+      <p>No chemicals match your current search criteria.</p>
+      <button class="btn btn-primary" onclick="clearFilters()">
+        <i class="fas fa-times me-2"></i>Clear Filters
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Global variables
+  let allChemicals = [];
+  let filteredChemicals = [];
+  let sortColumn = '';
+  let sortDirection = 'asc';
+
+  // Initialize the page
+  document.addEventListener('DOMContentLoaded', function() {
+      loadChemicals();
+      setupEventListeners();
+  });
+
+  function setupEventListeners() {
+      // Search input
+      document.getElementById('searchInput').addEventListener('input', function() {
+          debounce(filterChemicals, 300)();
+      });
+
+      // Filter dropdowns
+      document.getElementById('toxicStateFilter').addEventListener('change', filterChemicals);
+      document.getElementById('storageFilter').addEventListener('change', filterChemicals);
+      document.getElementById('responsibleFilter').addEventListener('change', filterChemicals);
+  }
+
+  // Debounce function for search
+  function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+          const later = () => {
+              clearTimeout(timeout);
+              func(...args);
+          };
+          clearTimeout(timeout);
+          timeout = setTimeout(later, wait);
+      };
+  }
+
+  // Load chemicals from API
+  async function loadChemicals() {
+      showLoading(true);
+      try {
+          const response = await fetch('/api/chemicals');
+
+          if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          allChemicals = await response.json();
+          filteredChemicals = [...allChemicals];
+
+          // Populate filter dropdowns with unique values
+          populateFilterDropdowns();
+
+          displayChemicals();
+          updateStatistics();
+          console.log(`Loaded ${allChemicals.length} chemicals successfully`);
+
+      } catch (error) {
+          console.error('Error loading chemicals:', error);
+          showError('Failed to load chemicals. Please check the console for details.');
+      } finally {
+          showLoading(false);
+      }
+  }
+
+  // Populate filter dropdowns with unique values from data
+  function populateFilterDropdowns() {
+      const storageFilter = document.getElementById('storageFilter');
+      const responsibleFilter = document.getElementById('responsibleFilter');
+
+      // Get unique storage locations
+      const uniqueStorages = [...new Set(allChemicals
+          .map(chemical => chemical.storage)
+          .filter(storage => storage && storage.trim() !== '')
+      )].sort();
+
+      // Get unique responsible persons
+      const uniqueResponsible = [...new Set(allChemicals
+          .map(chemical => chemical.responsible)
+          .filter(responsible => responsible && responsible.trim() !== '')
+      )].sort();
+
+      // Clear existing options except "All"
+      storageFilter.innerHTML = '<option value="">All Storage</option>';
+      responsibleFilter.innerHTML = '<option value="">All Responsible</option>';
+
+      // Add unique values as options
+      uniqueStorages.forEach(storage => {
+          const option = document.createElement('option');
+          option.value = storage;
+          option.textContent = storage;
+          storageFilter.appendChild(option);
+      });
+
+      uniqueResponsible.forEach(responsible => {
+          const option = document.createElement('option');
+          option.value = responsible;
+          option.textContent = responsible;
+          responsibleFilter.appendChild(option);
+      });
+  }
+
+  // Display chemicals in table
+  function displayChemicals() {
+      const tbody = document.getElementById('chemicalsTableBody');
+      const emptyState = document.getElementById('emptyState');
+      const chemicalsTable = document.getElementById('chemicalsTable');
+
+      if (filteredChemicals.length === 0) {
+          chemicalsTable.classList.add('d-none');
+          emptyState.classList.remove('d-none');
+          return;
+      }
+
+      chemicalsTable.classList.remove('d-none');
+      emptyState.classList.add('d-none');
+
+      tbody.innerHTML = '';
+
+      filteredChemicals.forEach(chemical => {
+          const row = createChemicalRow(chemical);
+          tbody.appendChild(row);
+      });
+  }
+
+  // Create individual chemical row
+  function createChemicalRow(chemical) {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+          <td>
+              <div class="chemical-name">${chemical.name || 'N/A'}</div>
+          </td>
+          <td>${getCASNo(chemical)}</td>
+          <td>${chemical.storage || 'N/A'}</td>
+          <td>
+              <i class="fas fa-user me-1"></i>
+              ${chemical.responsible || 'N/A'}
+          </td>
+          <td>
+              <span class="${getToxicityBadgeClass(chemical.toxicState)}">
+                  ${getToxicityText(chemical.toxicState)}
+              </span>
+          </td>
+          <td>${chemical.weight || 'N/A'}</td>
+          <td>${chemical.orderDate || 'N/A'}</td>
+          <td>
+              <div class="action-buttons">
+                  <button class="btn-action btn-view" onclick="viewChemical('${chemical.id}')" title="View Details">
+                      <i class="fas fa-eye"></i>
+                  </button>
+                  <button class="btn-action btn-qr" onclick="generateQR('${chemical.id}')" title="Generate QR">
+                      <i class="fas fa-qrcode"></i>
+                  </button>
+                  <button class="btn-action btn-edit" onclick="editChemical('${chemical.id}')" title="Edit">
+                      <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="btn-action btn-delete" onclick="deleteChemical('${chemical.id}')" title="Delete">
+                      <i class="fas fa-trash"></i>
+                  </button>
+              </div>
+          </td>
+      `;
+      return row;
+  }
+
+  // Helper function to get CAS number from chemical object
+  function getCASNo(chemical) {
+      return chemical.casNo || 'N/A';  // Now using camelCase
+  }
+
+  // Helper function to get Lot number from chemical object
+  function getLotNo(chemical) {
+      return chemical.lotNo || 'N/A';  // Now using camelCase
+  }
+  function getToxicityBadgeClass(toxicState) {
+      if (toxicState === true) return 'toxic-badge';
+      if (toxicState === false) return 'safe-badge';
+      return 'unknown-badge';
+  }
+
+  function getToxicityText(toxicState) {
+      if (toxicState === true) return 'TOXIC';
+      if (toxicState === false) return 'SAFE';
+      return 'UNKNOWN';
+  }
+
+  // Filter chemicals based on search and dropdowns
+  function filterChemicals() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      const toxicStateFilter = document.getElementById('toxicStateFilter').value;
+      const storageFilter = document.getElementById('storageFilter').value.toLowerCase();
+      const responsibleFilter = document.getElementById('responsibleFilter').value.toLowerCase();
+
+      filteredChemicals = allChemicals.filter(chemical => {
+          // Search filter
+          const matchesSearch = !searchTerm ||
+              (chemical.name && chemical.name.toLowerCase().includes(searchTerm)) ||
+              (getCASNo(chemical) !== 'N/A' && getCASNo(chemical).toLowerCase().includes(searchTerm)) ||
+              (chemical.storage && chemical.storage.toLowerCase().includes(searchTerm)) ||
+              (chemical.responsible && chemical.responsible.toLowerCase().includes(searchTerm)) ||
+              (chemical.producer && chemical.producer.toLowerCase().includes(searchTerm));
+
+          // Toxicity filter
+          let matchesToxicity = true;
+          if (toxicStateFilter !== '') {
+              if (toxicStateFilter === 'null') {
+                  matchesToxicity = chemical.toxicState === null || chemical.toxicState === undefined;
+              } else {
+                  matchesToxicity = chemical.toxicState === (toxicStateFilter === 'true');
+              }
+          }
+
+          // Storage filter
+          const matchesStorage = !storageFilter ||
+              (chemical.storage && chemical.storage.toLowerCase() === storageFilter);
+
+          // Responsible filter
+          const matchesResponsible = !responsibleFilter ||
+              (chemical.responsible && chemical.responsible.toLowerCase() === responsibleFilter);
+
+          return matchesSearch && matchesToxicity && matchesStorage && matchesResponsible;
+      });
+
+      displayChemicals();
+      updateStatistics();
+  }
+
+  // Clear all filters
+  function clearFilters() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('toxicStateFilter').value = '';
+      document.getElementById('storageFilter').value = '';
+      document.getElementById('responsibleFilter').value = '';
+
+      filteredChemicals = [...allChemicals];
+      displayChemicals();
+      updateStatistics();
+  }
+
+  // Update statistics
+  function updateStatistics() {
+      const total = filteredChemicals.length;
+      const toxic = filteredChemicals.filter(c => c.toxicState === true).length;
+      const safe = filteredChemicals.filter(c => c.toxicState === false).length;
+      const unknown = filteredChemicals.filter(c => c.toxicState === null || c.toxicState === undefined).length;
+
+      document.getElementById('totalChemicals').textContent = total;
+      document.getElementById('toxicChemicals').textContent = toxic;
+      document.getElementById('safeChemicals').textContent = safe;
+      document.getElementById('unknownChemicals').textContent = unknown;
+  }
+
+  // Sort table by column
+  function sortTable(column) {
+      if (sortColumn === column) {
+          sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+          sortColumn = column;
+          sortDirection = 'asc';
+      }
+
+      filteredChemicals.sort((a, b) => {
+          let aVal = a[column] || '';
+          let bVal = b[column] || '';
+
+          if (typeof aVal === 'string') {
+              aVal = aVal.toLowerCase();
+              bVal = bVal.toLowerCase();
+          }
+
+          if (sortDirection === 'asc') {
+              return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+          } else {
+              return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+          }
+      });
+
+      displayChemicals();
+      updateSortIcons();
+  }
+
+  // Update sort icons
+  function updateSortIcons() {
+      document.querySelectorAll('th i.fas').forEach(icon => {
+          icon.className = 'fas fa-sort';
+      });
+
+      const activeHeader = document.querySelector(`th[onclick="sortTable('${sortColumn}')"] i`);
+      if (activeHeader) {
+          activeHeader.className = `fas fa-sort-${sortDirection === 'asc' ? 'up' : 'down'}`;
+      }
+  }
+
+  // Action functions
+  function viewChemical(chemicalId) {
+      showChemicalDetailsModal(chemicalId);
+  }
+
+  async function generateQR(chemicalId) {
+      try {
+          showLoading(true);
+
+          const response = await fetch(`/api/chemicals/${chemicalId}/generate-qr`, { method: 'POST' });
+
+          if (!response.ok) {
+              throw new Error(`Failed to generate QR code: ${response.status}`);
+          }
+
+          const result = await response.text();
+
+          // Now get the QR code image
+          const imageResponse = await fetch(`/api/chemicals/${chemicalId}/qr-image`);
+
+          if (imageResponse.ok) {
+              const blob = await imageResponse.blob();
+              const imageUrl = URL.createObjectURL(blob);
+              showQRCodeModal(imageUrl, chemicalId);
+          } else {
+              showSuccess('QR code generated successfully!');
+          }
+
+      } catch (error) {
+          console.error('Error generating QR code:', error);
+          showError('Failed to generate QR code: ' + error.message);
+      } finally {
+          showLoading(false);
+      }
+  }
+
+  function editChemical(chemicalId) {
+      const chemical = allChemicals.find(c => c.id == chemicalId);
+      if (chemical) {
+          showEditChemicalModal(chemical);
+      } else {
+          showError('Chemical not found');
+      }
+  }
+
+  async function deleteChemical(chemicalId) {
+      if (!confirm(`Are you sure you want to delete this chemical?\n\nThis action cannot be undone.`)) {
+          return;
+      }
+
+      try {
+          showLoading(true);
+
+          const response = await fetch(`/api/chemicals/${chemicalId}`, { method: 'DELETE' });
+
+          if (response.ok) {
+              showSuccess('Chemical deleted successfully!');
+              loadChemicals(); // Reload the data
+          } else {
+              throw new Error(`Delete failed: ${response.status}`);
+          }
+
+      } catch (error) {
+          console.error('Error deleting chemical:', error);
+          showError('Failed to delete chemical: ' + error.message);
+      } finally {
+          showLoading(false);
+      }
+  }
+
+  function addNewChemical() {
+      showAddChemicalModal();
+  }
+
+  async function confirmClearAll() {
+      if (!confirm(`Are you sure you want to clear ALL chemicals from the database?\n\nThis action cannot be undone and will permanently delete all chemical records.`)) {
+          return;
+      }
+
+      try {
+          showLoading(true);
+
+          const response = await fetch('/api/chemicals/clear-all', { method: 'DELETE' });
+
+          if (response.ok) {
+              const message = await response.text();
+              showSuccess(message);
+              loadChemicals(); // Reload the data
+          } else {
+              throw new Error(`Clear failed: ${response.status}`);
+          }
+
+      } catch (error) {
+          console.error('Error clearing chemicals:', error);
+          showError('Failed to clear chemicals: ' + error.message);
+      } finally {
+          showLoading(false);
+      }
+  }
+
+  function refreshData() {
+      loadChemicals();
+  }
+
+  // Utility functions
+  function showLoading(show) {
+      document.getElementById('loadingSpinner').style.display = show ? 'block' : 'none';
+      if (!show) {
+          document.getElementById('chemicalsTable').style.display = 'block';
+      }
+  }
+
+  function showError(message) {
+      showToast(message, 'error');
+  }
+
+  function showSuccess(message) {
+      showToast(message, 'success');
+  }
+
+  function showToast(message, type = 'info') {
+      // Remove existing toasts
+      const existingToasts = document.querySelectorAll('.toast-notification');
+      existingToasts.forEach(toast => toast.remove());
+
+      // Create toast element
+      const toast = document.createElement('div');
+      toast.className = `toast-notification toast-${type}`;
+      toast.innerHTML = `
+          <div class="toast-content">
+              <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+              <span>${message}</span>
+              <button class="toast-close" onclick="this.parentElement.parentElement.remove()">
+                  <i class="fas fa-times"></i>
+              </button>
+          </div>
+      `;
+
+      // Add toast styles
+      const style = document.createElement('style');
+      style.textContent = `
+          .toast-notification {
+              position: fixed;
+              top: 20px;
+              right: 20px;
+              z-index: 9999;
+              max-width: 400px;
+              background: white;
+              border-radius: 10px;
+              box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+              animation: slideInRight 0.3s ease;
+          }
+          .toast-success { border-left: 4px solid #4CAF50; }
+          .toast-error { border-left: 4px solid #f44336; }
+          .toast-info { border-left: 4px solid #2196F3; }
+          .toast-content {
+              padding: 15px 20px;
+              display: flex;
+              align-items: center;
+              gap: 10px;
+          }
+          .toast-close {
+              background: none;
+              border: none;
+              color: #666;
+              cursor: pointer;
+              margin-left: auto;
+          }
+          @keyframes slideInRight {
+              from { transform: translateX(100%); opacity: 0; }
+              to { transform: translateX(0); opacity: 1; }
+          }
+      `;
+
+      document.head.appendChild(style);
+      document.body.appendChild(toast);
+
+      // Auto remove after 5 seconds
+      setTimeout(() => {
+          if (toast.parentElement) {
+              toast.remove();
+          }
+      }, 5000);
+  }
+
+  // Modal functions
+  function showChemicalDetailsModal(chemicalId) {
+      const chemical = allChemicals.find(c => c.id == chemicalId);
+      if (!chemical) {
+          showError('Chemical not found');
+          return;
+      }
+
+      const modal = createModal('Chemical Details', `
+          <div class="chemical-details">
+              <div class="row">
+                  <div class="col-md-6">
+                      <h6>Basic Information</h6>
+                      <table class="table table-sm">
+                          <tr><td><strong>Name:</strong></td><td>${chemical.name || 'N/A'}</td></tr>
+                          <tr><td><strong>CAS Number:</strong></td><td>${getCASNo(chemical)}</td></tr>
+                          <tr><td><strong>Lot Number:</strong></td><td>${getLotNo(chemical)}</td></tr>
+                          <tr><td><strong>Producer:</strong></td><td>${chemical.producer || 'N/A'}</td></tr>
+                          <tr><td><strong>Weight:</strong></td><td>${chemical.weight || 'N/A'}</td></tr>
+                      </table>
+                  </div>
+                  <div class="col-md-6">
+                      <h6>Storage & Safety</h6>
+                      <table class="table table-sm">
+                          <tr><td><strong>Storage:</strong></td><td>${chemical.storage || 'N/A'}</td></tr>
+                          <tr><td><strong>Toxicity:</strong></td><td><span class="${getToxicityBadgeClass(chemical.toxicState)}">${getToxicityText(chemical.toxicState)}</span></td></tr>
+                          <tr><td><strong>Responsible:</strong></td><td>${chemical.responsible || 'N/A'}</td></tr>
+                          <tr><td><strong>Order Date:</strong></td><td>${chemical.orderDate || 'N/A'}</td></tr>
+                          <tr><td><strong>QR Code:</strong></td><td>${chemical.qrCode ? '✅ Generated' : '❌ Not generated'}</td></tr>
+                      </table>
+                  </div>
+              </div>
+          </div>
+      `, [
+          { text: 'Generate QR Code', class: 'btn-primary', onclick: `generateQR('${chemical.id}')` },
+          { text: 'Edit Chemical', class: 'btn-warning', onclick: `editChemical('${chemical.id}')` },
+          { text: 'Close', class: 'btn-secondary', onclick: 'closeModal()' }
+      ]);
+
+      showModal(modal);
+  }
+
+  function showQRCodeModal(imageUrl, chemicalId) {
+      const modal = createModal('QR Code Generated', `
+          <div class="text-center">
+              <img src="${imageUrl}" alt="QR Code" class="img-fluid mb-3" style="max-width: 300px;">
+              <p>QR Code generated successfully for chemical ID: <strong>${chemicalId}</strong></p>
+              <p class="text-muted">Scan this code to view chemical details</p>
+          </div>
+      `, [
+          { text: 'Download', class: 'btn-primary', onclick: `downloadQRCode('${imageUrl}', '${chemicalId}')` },
+          { text: 'Close', class: 'btn-secondary', onclick: 'closeModal()' }
+      ]);
+
+      showModal(modal);
+  }
+
+  function showEditChemicalModal(chemical) {
+      const modal = createModal('Edit Chemical', `
+          <form id="editChemicalForm">
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="mb-3">
+                          <label class="form-label">Chemical Name *</label>
+                          <input type="text" class="form-control" name="name" value="${chemical.name || ''}" required>
+                      </div>
+                      <div class="mb-3">
+                          <label class="form-label">CAS Number</label>
+                          <input type="text" class="form-control" name="casNo" value="${getCASNo(chemical)}" placeholder="e.g., 7647-14-5">
+                      </div>
+                      <div class="mb-3">
+                          <label class="form-label">Lot Number</label>
+                          <input type="text" class="form-control" name="lotNo" value="${getLotNo(chemical)}" placeholder="Enter lot number">
+                      </div>
+                      <div class="mb-3">
+                          <label class="form-label">Producer</label>
+                          <input type="text" class="form-control" name="producer" value="${chemical.producer || ''}" placeholder="Enter producer">
+                      </div>
+                      <div class="mb-3">
+                          <label class="form-label">Weight</label>
+                          <input type="text" class="form-control" name="weight" value="${chemical.weight || ''}" placeholder="e.g., 500g, 1L">
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="mb-3">
+                          <label class="form-label">Storage Location *</label>
+                          <input type="text" class="form-control" name="storage" value="${chemical.storage || ''}" required placeholder="e.g., Room A-101">
+                      </div>
+                      <div class="mb-3">
+                          <label class="form-label">Toxicity Status</label>
+                          <select class="form-control" name="toxicState">
+                              <option value="">Unknown</option>
+                              <option value="false" ${chemical.toxicState === false ? 'selected' : ''}>Safe</option>
+                              <option value="true" ${chemical.toxicState === true ? 'selected' : ''}>Toxic</option>
+                          </select>
+                      </div>
+                      <div class="mb-3">
+                          <label class="form-label">Responsible Person</label>
+                          <input type="text" class="form-control" name="responsible" value="${chemical.responsible || ''}" placeholder="Enter responsible person">
+                      </div>
+                      <div class="mb-3">
+                          <label class="form-label">Order Date</label>
+                          <input type="date" class="form-control" name="orderDate" value="${chemical.orderDate || ''}">
+                      </div>
+                  </div>
+              </div>
+          </form>
+      `, [
+          { text: 'Save Changes', class: 'btn-success', onclick: `saveChemicalChanges('${chemical.id}')` },
+          { text: 'Cancel', class: 'btn-secondary', onclick: 'closeModal()' }
+      ]);
+
+      showModal(modal);
+  }
+
+  function showAddChemicalModal() {
+      const modal = createModal('Add New Chemical', `
+          <form id="addChemicalForm">
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="mb-3">
+                          <label class="form-label">Chemical Name *</label>
+                          <input type="text" class="form-control" name="name" required placeholder="Enter chemical name">
+                      </div>
+                      <div class="mb-3">
+                          <label class="form-label">CAS Number</label>
+                          <input type="text" class="form-control" name="CASNo" placeholder="e.g., 7647-14-5">
+                      </div>
+                      <div class="mb-3">
+                          <label class="form-label">Lot Number</label>
+                          <input type="text" class="form-control" name="LotNo" placeholder="Enter lot number">
+                      </div>
+                      <div class="mb-3">
+                          <label class="form-label">Producer</label>
+                          <input type="text" class="form-control" name="producer" placeholder="Enter producer">
+                      </div>
+                      <div class="mb-3">
+                          <label class="form-label">Weight</label>
+                          <input type="text" class="form-control" name="weight" placeholder="e.g., 500g, 1L">
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="mb-3">
+                          <label class="form-label">Storage Location *</label>
+                          <input type="text" class="form-control" name="storage" required placeholder="e.g., Room A-101">
+                      </div>
+                      <div class="mb-3">
+                          <label class="form-label">Toxicity Status</label>
+                          <select class="form-control" name="toxicState">
+                              <option value="">Unknown</option>
+                              <option value="false">Safe</option>
+                              <option value="true">Toxic</option>
+                          </select>
+                      </div>
+                      <div class="mb-3">
+                          <label class="form-label">Responsible Person</label>
+                          <input type="text" class="form-control" name="responsible" placeholder="Enter responsible person">
+                      </div>
+                      <div class="mb-3">
+                          <label class="form-label">Order Date</label>
+                          <input type="date" class="form-control" name="orderDate">
+                      </div>
+                  </div>
+              </div>
+          </form>
+      `, [
+          { text: 'Create Chemical', class: 'btn-success', onclick: 'createNewChemical()' },
+          { text: 'Cancel', class: 'btn-secondary', onclick: 'closeModal()' }
+      ]);
+
+      showModal(modal);
+  }
+
+  // Modal utility functions
+  function createModal(title, content, buttons = []) {
+      return `
+          <div class="modal fade" id="dynamicModal" tabindex="-1">
+              <div class="modal-dialog modal-lg">
+                  <div class="modal-content">
+                      <div class="modal-header">
+                          <h5 class="modal-title">${title}</h5>
+                          <button type="button" class="btn-close" onclick="closeModal()"></button>
+                      </div>
+                      <div class="modal-body">
+                          ${content}
+                      </div>
+                      <div class="modal-footer">
+                          ${buttons.map(btn => `
+                              <button type="button" class="btn ${btn.class}" onclick="${btn.onclick}">
+                                  ${btn.text}
+                              </button>
+                          `).join('')}
+                      </div>
+                  </div>
+              </div>
+          </div>
+      `;
+  }
+
+  function showModal(modalHtml) {
+      // Remove existing modal and backdrop
+      const existingModal = document.getElementById('dynamicModal');
+      if (existingModal) {
+          existingModal.remove();
+      }
+
+      // Remove any existing backdrops
+      const existingBackdrops = document.querySelectorAll('.modal-backdrop');
+      existingBackdrops.forEach(backdrop => backdrop.remove());
+
+      // Clean body classes
+      document.body.classList.remove('modal-open');
+      document.body.style.removeProperty('overflow');
+      document.body.style.removeProperty('padding-right');
+
+      // Add new modal to body
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+      // Show modal with event listeners
+      const modalElement = document.getElementById('dynamicModal');
+      const modal = new bootstrap.Modal(modalElement, {
+          backdrop: 'static',
+          keyboard: true
+      });
+
+      // Add event listener for proper cleanup when modal is hidden
+      modalElement.addEventListener('hidden.bs.modal', function () {
+          // Remove the modal element
+          if (modalElement.parentElement) {
+              modalElement.remove();
+          }
+
+          // Clean up any remaining backdrops
+          const backdrops = document.querySelectorAll('.modal-backdrop');
+          backdrops.forEach(backdrop => backdrop.remove());
+
+          // Ensure body is properly reset
+          document.body.classList.remove('modal-open');
+          document.body.style.removeProperty('overflow');
+          document.body.style.removeProperty('padding-right');
+      });
+
+      modal.show();
+  }
+
+  function closeModal() {
+      const modalElement = document.getElementById('dynamicModal');
+      if (modalElement) {
+          const modal = bootstrap.Modal.getInstance(modalElement);
+          if (modal) {
+              modal.hide();
+          }
+
+          // Remove backdrop and modal after hiding
+          setTimeout(() => {
+              // Remove any remaining backdrops
+              const backdrops = document.querySelectorAll('.modal-backdrop');
+              backdrops.forEach(backdrop => backdrop.remove());
+
+              // Remove the modal element
+              if (modalElement.parentElement) {
+                  modalElement.remove();
+              }
+
+              // Ensure body classes are cleaned up
+              document.body.classList.remove('modal-open');
+              document.body.style.removeProperty('overflow');
+              document.body.style.removeProperty('padding-right');
+          }, 200);
+      }
+  }
+
+  // Form submission functions
+  async function saveChemicalChanges(chemicalId) {
+      const form = document.getElementById('editChemicalForm');
+      const formData = new FormData(form);
+      const chemicalData = Object.fromEntries(formData.entries());
+
+      // Convert toxicState string to boolean or null
+      if (chemicalData.toxicState === 'true') {
+          chemicalData.toxicState = true;
+      } else if (chemicalData.toxicState === 'false') {
+          chemicalData.toxicState = false;
+      } else {
+          chemicalData.toxicState = null;
+      }
+
+      try {
+          showLoading(true);
+
+          const response = await fetch(`/api/chemicals/${chemicalId}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(chemicalData)
+          });
+
+          if (response.ok) {
+              showSuccess('Chemical updated successfully!');
+              closeModal();
+              loadChemicals();
+          } else {
+              throw new Error(`Update failed: ${response.status}`);
+          }
+
+      } catch (error) {
+          console.error('Error updating chemical:', error);
+          showError('Failed to update chemical: ' + error.message);
+      } finally {
+          showLoading(false);
+      }
+  }
+
+  async function createNewChemical() {
+      const form = document.getElementById('addChemicalForm');
+      const formData = new FormData(form);
+      const chemicalData = Object.fromEntries(formData.entries());
+
+      if (!chemicalData.name.trim()) {
+          showError('Chemical name is required');
+          return;
+      }
+
+      if (!chemicalData.storage.trim()) {
+          showError('Storage location is required');
+          return;
+      }
+
+      // Convert toxicState string to boolean or null
+      if (chemicalData.toxicState === 'true') {
+          chemicalData.toxicState = true;
+      } else if (chemicalData.toxicState === 'false') {
+          chemicalData.toxicState = false;
+      } else {
+          chemicalData.toxicState = null;
+      }
+
+      try {
+          showLoading(true);
+
+          const response = await fetch('/api/chemicals', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(chemicalData)
+          });
+
+          if (response.ok) {
+              showSuccess('Chemical created successfully!');
+              closeModal();
+              loadChemicals();
+          } else {
+              throw new Error(`Create failed: ${response.status}`);
+          }
+
+      } catch (error) {
+          console.error('Error creating chemical:', error);
+          showError('Failed to create chemical: ' + error.message);
+      } finally {
+          showLoading(false);
+      }
+  }
+
+  function downloadQRCode(imageUrl, chemicalId) {
+      const link = document.createElement('a');
+      link.href = imageUrl;
+      link.download = `chemical_${chemicalId}_qr_code.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+  }
+</script>
+</body>
+</html>

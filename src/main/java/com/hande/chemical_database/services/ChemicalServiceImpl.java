@@ -46,7 +46,7 @@ public class ChemicalServiceImpl implements ChemicalService {
         if(chemicalDb.isPresent()) {
             Chemicals chemicalUpdate = chemicalDb.get();
             chemicalUpdate.setName(chemical.getName());
-            chemicalUpdate.setCASNo(chemical.getCASNo());
+            chemicalUpdate.setCasNo(chemical.getCasNo());
             chemicalUpdate.setLotNo(chemical.getLotNo());
             chemicalUpdate.setProducer(chemical.getProducer());
             chemicalUpdate.setStorage(chemical.getStorage());
@@ -59,6 +59,34 @@ public class ChemicalServiceImpl implements ChemicalService {
             return Optional.of(chemicalMapper.chemicalToChemicalDTO(updatedChemical));
         } else {
             throw new ResourceNotFoundException("Record not found with name : " + chemical.getName());
+        }
+    }
+
+    @Override
+    public Optional<ChemicalDTO> updateChemicalById(Long id, ChemicalDTO chemicalDTO) {
+        Optional<Chemicals> chemicalDb = chemicalRepo.findById(id);
+        if (chemicalDb.isPresent()) {
+            Chemicals chemicalUpdate = chemicalDb.get();
+
+            // Update all fields
+            chemicalUpdate.setName(chemicalDTO.getName());
+            chemicalUpdate.setCasNo(chemicalDTO.getCasNo());
+            chemicalUpdate.setLotNo(chemicalDTO.getLotNo());
+            chemicalUpdate.setProducer(chemicalDTO.getProducer());
+            chemicalUpdate.setStorage(chemicalDTO.getStorage());
+            chemicalUpdate.setToxicState(chemicalDTO.getToxicState());
+            chemicalUpdate.setResponsible(chemicalDTO.getResponsible());
+            chemicalUpdate.setOrderDate(chemicalDTO.getOrderDate());
+            chemicalUpdate.setWeight(chemicalDTO.getWeight());
+
+            Chemicals updatedChemical = chemicalRepo.save(chemicalUpdate);
+            log.info("Successfully updated chemical with ID: {} and name: {}",
+                    updatedChemical.getId(), updatedChemical.getName());
+
+            return Optional.of(chemicalMapper.chemicalToChemicalDTO(updatedChemical));
+        } else {
+            log.warn("Chemical not found with ID: {}", id);
+            throw new ResourceNotFoundException("Record not found with id : " + id);
         }
     }
 

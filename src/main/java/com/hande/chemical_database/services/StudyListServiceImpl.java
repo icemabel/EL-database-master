@@ -40,26 +40,50 @@ public class StudyListServiceImpl implements StudyListService {
         return studyListMapper.studyListToStudyListDTO(savedStudyList);
     }
 
+    // Replace the updateStudyList method in your StudyListServiceImpl.java with this:
+
     @Override
-    public Optional<StudyListDTO> updateStudyList(StudyListDTO studyList) {
-        Optional<StudyList> studyListDb = studyListRepo.findByStudyCodeIgnoreCase(studyList.getStudyCode());
-        if(studyListDb.isPresent()) {
+    public Optional<StudyListDTO> updateStudyList(StudyListDTO studyListDTO) {
+        // Try to find by ID first, then by studyCode as fallback
+        Optional<StudyList> studyListDb = Optional.empty();
+
+        if (studyListDTO.getId() != null) {
+            // If ID is provided, find by ID
+            studyListDb = studyListRepo.findById(studyListDTO.getId());
+            log.info("Looking for study by ID: {}", studyListDTO.getId());
+        }
+
+        if (studyListDb.isEmpty() && studyListDTO.getStudyCode() != null) {
+            // If not found by ID or ID not provided, try by studyCode
+            studyListDb = studyListRepo.findByStudyCodeIgnoreCase(studyListDTO.getStudyCode());
+            log.info("Looking for study by studyCode: {}", studyListDTO.getStudyCode());
+        }
+
+        if (studyListDb.isPresent()) {
             StudyList studyListUpdate = studyListDb.get();
-            studyListUpdate.setStudyCode(studyList.getStudyCode());
-            studyListUpdate.setDocumentCodes(studyList.getDocumentCodes());
-            studyListUpdate.setMaterialType(studyList.getMaterialType());
-            studyListUpdate.setStudyLevel(studyList.getStudyLevel());
-            studyListUpdate.setRiskLevel(studyList.getRiskLevel());
-            studyListUpdate.setInfo(studyList.getInfo());
-            studyListUpdate.setNumberOfSamples(studyList.getNumberOfSamples());
-            studyListUpdate.setObjectOfStudy(studyList.getObjectOfStudy());
-            studyListUpdate.setResponsiblePerson(studyList.getResponsiblePerson());
-            studyListUpdate.setStatus(studyList.getStatus());
+
+            // Update all fields
+            studyListUpdate.setStudyCode(studyListDTO.getStudyCode());
+            studyListUpdate.setDocumentCodes(studyListDTO.getDocumentCodes());
+            studyListUpdate.setMaterialType(studyListDTO.getMaterialType());
+            studyListUpdate.setStudyLevel(studyListDTO.getStudyLevel());
+            studyListUpdate.setRiskLevel(studyListDTO.getRiskLevel());
+            studyListUpdate.setInfo(studyListDTO.getInfo());
+            studyListUpdate.setNumberOfSamples(studyListDTO.getNumberOfSamples());
+            studyListUpdate.setObjectOfStudy(studyListDTO.getObjectOfStudy());
+            studyListUpdate.setResponsiblePerson(studyListDTO.getResponsiblePerson());
+            studyListUpdate.setStatus(studyListDTO.getStatus());
 
             StudyList updatedStudyList = studyListRepo.save(studyListUpdate);
+            log.info("Successfully updated study with ID: {} and studyCode: {}",
+                    updatedStudyList.getId(), updatedStudyList.getStudyCode());
+
             return Optional.of(studyListMapper.studyListToStudyListDTO(updatedStudyList));
         } else {
-            throw new ResourceNotFoundException("Record not found with study code : " + studyList.getStudyCode());
+            String identifier = studyListDTO.getId() != null ?
+                    "ID: " + studyListDTO.getId() :
+                    "study code: " + studyListDTO.getStudyCode();
+            throw new ResourceNotFoundException("Record not found with " + identifier);
         }
     }
 

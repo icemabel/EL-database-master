@@ -17,8 +17,8 @@ public class ChemicalDTO {
     @NotNull
     private String name;
 
-    private String CASNo;
-    private String LotNo;
+    private String casNo;  // Changed from CASNo to casNo (camelCase)
+    private String lotNo;  // Changed from LotNo to lotNo (camelCase)
     private String producer;
     private Integer quantity;
 

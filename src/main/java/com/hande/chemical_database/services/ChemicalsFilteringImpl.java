@@ -38,7 +38,7 @@ public class ChemicalsFilteringImpl implements ChemicalsFiltering {
 
     @Override
     public List<Chemicals> searchByCASNo(String CASNo) {
-        return chemicalRepo.findByCASNo(CASNo);
+        return chemicalRepo.findByCasNo(CASNo);
     }
 
     @Override
@@ -112,7 +112,7 @@ public class ChemicalsFilteringImpl implements ChemicalsFiltering {
         return ChemicalDTO.builder()
                 .id(chemical.getId())
                 .name(chemical.getName())
-                .CASNo(chemical.getCASNo())
+                .casNo(chemical.getCasNo())
                 .toxicState(chemical.getToxicState())
                 .storage(chemical.getStorage())
                 .quantity(chemical.getQuantity())

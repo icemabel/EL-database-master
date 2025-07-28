@@ -42,11 +42,18 @@ public class ChemicalsUploadCsvImpl implements ChemicalsUploadCsv {
             throw new IllegalArgumentException("No valid chemical records found in CSV file. Check that your file has the correct columns: name, CASNo, LotNo, producer, storage, toxicState, responsible, orderDate, weight");
         }
 
+        log.info("CSV: Parsed {} chemical records from file", chemicalsSet.size());
+
         // Check for existing chemicals and filter them out
         List<String> existingChemicals = chemicalRepo.findAllChemicalNames();
+        Set<String> existingChemicalsSet = new HashSet<>(existingChemicals);
+
         Set<Chemicals> newChemicals = chemicalsSet.stream()
-                .filter(chemical -> !existingChemicals.contains(chemical.getName()))
+                .filter(chemical -> !existingChemicalsSet.contains(chemical.getName()))
                 .collect(Collectors.toSet());
+
+        log.info("CSV: Found {} new chemicals to save (filtered out {} existing)",
+                newChemicals.size(), chemicalsSet.size() - newChemicals.size());
 
         if (newChemicals.isEmpty()) {
             log.info("All chemicals in CSV already exist in database");
@@ -85,15 +92,24 @@ public class ChemicalsUploadCsvImpl implements ChemicalsUploadCsv {
             String line;
             boolean isFirstLine = true;
             String[] headers = null;
-            char delimiter = ';'; // Default to semicolon for European Excel
+            char delimiter = ','; // Default to comma first
             int lineNumber = 0;
+            int validRecords = 0;
+            int skippedRecords = 0;
 
             while ((line = reader.readLine()) != null) {
                 lineNumber++;
+
+                // Remove BOM if present
+                if (lineNumber == 1 && line.startsWith("\ufeff")) {
+                    line = line.substring(1);
+                }
+
                 line = line.trim();
 
                 // Skip completely empty lines
                 if (line.isEmpty()) {
+                    log.debug("CSV: Skipping empty line {}", lineNumber);
                     continue;
                 }
 
@@ -102,14 +118,20 @@ public class ChemicalsUploadCsvImpl implements ChemicalsUploadCsv {
                     delimiter = detectDelimiter(line);
                     headers = parseCSVLine(line, delimiter);
 
-                    // Clean headers
+                    // Clean and normalize headers
                     for (int i = 0; i < headers.length; i++) {
-                        headers[i] = cleanHeader(headers[i]);
+                        headers[i] = normalizeHeader(headers[i]);
                     }
 
                     isFirstLine = false;
                     log.info("CSV: Headers detected: {}", Arrays.toString(headers));
                     log.info("CSV: Using delimiter: '{}'", delimiter);
+
+                    // Validate required headers are present
+                    if (!hasRequiredHeaders(headers)) {
+                        throw new IllegalArgumentException("CSV file is missing required headers. Expected: name, storage (at minimum)");
+                    }
+
                     continue;
                 }
 
@@ -121,33 +143,24 @@ public class ChemicalsUploadCsvImpl implements ChemicalsUploadCsv {
                     // Parse CSV line with detected delimiter
                     String[] values = parseCSVLine(line, delimiter);
 
-                    // Skip lines that are completely empty (all empty values)
-                    boolean hasAnyValue = false;
-                    for (String value : values) {
-                        if (value != null && !value.trim().isEmpty() && !value.equals("\"\"")) {
-                            hasAnyValue = true;
-                            break;
-                        }
-                    }
-
-                    if (!hasAnyValue) {
-                        log.debug("CSV: Skipping empty line {}", lineNumber);
-                        continue;
-                    }
-
                     // Create chemical object from CSV row
-                    Chemicals chemical = createChemicalFromCSVRow(headers, values);
+                    Chemicals chemical = createChemicalFromCSVRow(headers, values, lineNumber);
                     if (chemical != null) {
                         chemicals.add(chemical);
+                        validRecords++;
+                        log.debug("CSV: Successfully parsed chemical: {}", chemical.getName());
+                    } else {
+                        skippedRecords++;
                     }
                 } catch (Exception e) {
                     log.warn("CSV: Error processing line {}: {} - {}", lineNumber, line, e.getMessage());
-                    // Continue processing other lines
+                    skippedRecords++;
                 }
             }
+
+            log.info("CSV: Processing complete - {} valid records, {} skipped records", validRecords, skippedRecords);
         }
 
-        log.info("CSV: Processed {} chemicals from file", chemicals.size());
         return chemicals;
     }
 
@@ -173,19 +186,29 @@ public class ChemicalsUploadCsvImpl implements ChemicalsUploadCsv {
 
         log.info("CSV: Delimiter detection - Commas: {}, Semicolons: {}", commaCount, semicolonCount);
 
-        // If we have semicolons, use semicolons (even if there are also commas)
-        // This handles European CSV format preference
+        // Prefer semicolon if present (European format), otherwise comma
         if (semicolonCount > 0) {
             return ';';
-        } else if (commaCount > 0) {
-            return ',';
         } else {
-            // Default to semicolon for European format
-            return ';';
+            return ',';
         }
     }
 
-    private Chemicals createChemicalFromCSVRow(String[] headers, String[] values) {
+    private String normalizeHeader(String header) {
+        if (header == null) return "";
+
+        return header.trim()
+                .replaceAll("[\\r\\n\\t]", "") // Remove all whitespace characters
+                .replaceAll("\\s+", "") // Remove all spaces
+                .toLowerCase();
+    }
+
+    private boolean hasRequiredHeaders(String[] headers) {
+        Set<String> headerSet = new HashSet<>(Arrays.asList(headers));
+        return headerSet.contains("name") && headerSet.contains("storage");
+    }
+
+    private Chemicals createChemicalFromCSVRow(String[] headers, String[] values, int lineNumber) {
         try {
             Chemicals.ChemicalsBuilder builder = Chemicals.builder();
 
@@ -193,67 +216,61 @@ public class ChemicalsUploadCsvImpl implements ChemicalsUploadCsv {
             String[] paddedValues = new String[headers.length];
             for (int i = 0; i < headers.length; i++) {
                 if (i < values.length) {
-                    paddedValues[i] = values[i];
+                    paddedValues[i] = cleanValue(values[i]);
                 } else {
-                    paddedValues[i] = ""; // Fill missing values with empty string
+                    paddedValues[i] = null;
                 }
             }
 
-            for (int i = 0; i < headers.length; i++) {
-                String header = cleanHeader(headers[i]);
-                String value = cleanValue(paddedValues[i]);
+            // Track which fields we've set
+            boolean hasName = false;
+            boolean hasStorage = false;
 
-                // Map CSV column names
+            for (int i = 0; i < headers.length; i++) {
+                String header = headers[i];
+                String value = paddedValues[i];
+
+                // Map CSV column names with flexible matching
                 switch (header) {
                     case "name":
-                        builder.name(value);
+                        if (value != null && !value.trim().isEmpty()) {
+                            builder.name(value.trim());
+                            hasName = true;
+                        }
                         break;
                     case "casno":
-                    case "cas no":
                     case "cas_no":
-                        builder.CASNo(value);
+                        builder.casNo(value);  // Updated to use camelCase
                         break;
                     case "lotno":
-                    case "lot no":
                     case "lot_no":
-                        builder.LotNo(value);
+                        builder.lotNo(value);  // Updated to use camelCase
                         break;
                     case "producer":
                         builder.producer(value);
                         break;
                     case "storage":
-                        builder.storage(value);
+                        if (value != null && !value.trim().isEmpty()) {
+                            builder.storage(value.trim());
+                            hasStorage = true;
+                        }
                         break;
                     case "toxicstate":
-                    case "toxic state":
                     case "toxic_state":
                         if (value != null) {
-                            try {
-                                // Handle various boolean representations - now includes uppercase
-                                String lowerValue = value.toLowerCase();
-                                if ("true".equals(lowerValue) || "yes".equals(lowerValue) || "1".equals(lowerValue)) {
-                                    builder.toxicState(true);
-                                } else if ("false".equals(lowerValue) || "no".equals(lowerValue) || "0".equals(lowerValue)) {
-                                    builder.toxicState(false);
-                                }
-                                // If it's null or unrecognized, leave as null
-                            } catch (Exception e) {
-                                log.warn("Invalid boolean value for toxicState: {}", value);
-                            }
+                            Boolean toxicState = parseBooleanValue(value);
+                            builder.toxicState(toxicState);
                         }
                         break;
                     case "responsible":
                         builder.responsible(value);
                         break;
                     case "orderdate":
-                    case "order date":
                     case "order_date":
                         if (value != null) {
-                            try {
-                                LocalDate orderDate = parseDate(value);
+                            LocalDate orderDate = parseDate(value);
+                            if (orderDate != null) {
                                 builder.orderDate(orderDate);
-                            } catch (Exception e) {
-                                log.warn("Invalid date format: {}", value);
                             }
                         }
                         break;
@@ -265,50 +282,40 @@ public class ChemicalsUploadCsvImpl implements ChemicalsUploadCsv {
                 }
             }
 
-            Chemicals chemical = builder.build();
-
             // Validate required fields
-            if (chemical.getName() == null || chemical.getName().trim().isEmpty()) {
-                log.warn("CSV: Skipping row with missing name");
+            if (!hasName) {
+                log.warn("CSV line {}: Skipping row with missing or empty name", lineNumber);
                 return null;
             }
 
-            if (chemical.getStorage() == null || chemical.getStorage().trim().isEmpty()) {
-                log.warn("CSV: Skipping row '{}' with missing storage", chemical.getName());
+            if (!hasStorage) {
+                log.warn("CSV line {}: Skipping row '{}' with missing or empty storage", lineNumber, paddedValues[0]);
                 return null;
             }
 
-            log.debug("CSV: Created chemical: {}", chemical.getName());
+            Chemicals chemical = builder.build();
+            log.debug("CSV line {}: Created chemical: {}", lineNumber, chemical.getName());
             return chemical;
 
         } catch (Exception e) {
-            log.error("CSV: Error creating chemical from row: {}", Arrays.toString(values), e);
+            log.error("CSV line {}: Error creating chemical from row: {} - {}", lineNumber, Arrays.toString(values), e.getMessage());
             return null;
         }
-    }
-
-    private String cleanHeader(String header) {
-        if (header == null) return "";
-        return header.trim()
-                .replaceAll("[\\r\\n]", "") // Remove line breaks
-                .replaceAll("\\s+", " ") // Replace multiple spaces with single space
-                .toLowerCase()
-                .trim();
     }
 
     private String cleanValue(String value) {
         if (value == null) return null;
 
-        // First remove any carriage returns or newlines
+        // Remove carriage returns, newlines, and trim
         value = value.replaceAll("[\\r\\n]", "").trim();
 
-        // Remove quotes if present
+        // Remove surrounding quotes if present
         if (value.startsWith("\"") && value.endsWith("\"") && value.length() > 1) {
             value = value.substring(1, value.length() - 1);
             value = value.replace("\"\"", "\""); // Handle escaped quotes
         }
 
-        // Handle various empty value representations from Excel
+        // Handle various empty value representations
         if (value.isEmpty() ||
                 "null".equalsIgnoreCase(value) ||
                 "n/a".equalsIgnoreCase(value) ||
@@ -322,6 +329,33 @@ public class ChemicalsUploadCsvImpl implements ChemicalsUploadCsv {
         }
 
         return value.trim();
+    }
+
+    private Boolean parseBooleanValue(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+
+        value = value.trim().toLowerCase();
+
+        switch (value) {
+            case "true":
+            case "yes":
+            case "y":
+            case "1":
+            case "toxic":
+                return true;
+            case "false":
+            case "no":
+            case "n":
+            case "0":
+            case "safe":
+            case "non-toxic":
+                return false;
+            default:
+                log.warn("Unknown boolean value: {}, treating as null", value);
+                return null;
+        }
     }
 
     private String[] parseCSVLine(String line, char delimiter) {
@@ -346,28 +380,36 @@ public class ChemicalsUploadCsvImpl implements ChemicalsUploadCsv {
     }
 
     private LocalDate parseDate(String dateString) {
-        // Updated to prioritize European DD.MM.YYYY format first
+        if (dateString == null || dateString.trim().isEmpty()) {
+            return null;
+        }
+
+        dateString = dateString.trim();
+
+        // Try common date formats - prioritize European formats first
         String[] formats = {
-                "dd.MM.yyyy",      // European format: 15.01.2024
-                "dd/MM/yyyy",      // European format: 15/01/2024
-                "dd-MM-yyyy",      // European format: 15-01-2024
-                "yyyy-MM-dd",      // ISO format: 2024-01-15
-                "MM/dd/yyyy",      // US format: 01/15/2024
-                "yyyy/MM/dd",      // Alternative ISO: 2024/01/15
-                "MM-dd-yyyy"       // US format: 01-15-2024
+                "dd.MM.yyyy",    // German/European format (15.01.2024)
+                "yyyy-MM-dd",    // ISO format
+                "MM/dd/yyyy",    // US format
+                "dd/MM/yyyy",    // European format with slashes
+                "yyyy/MM/dd",
+                "dd-MM-yyyy",
+                "MM-dd-yyyy",
+                "yyyy.MM.dd"
         };
 
         for (String format : formats) {
             try {
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
-                LocalDate parsedDate = LocalDate.parse(dateString, formatter);
+                LocalDate parsed = LocalDate.parse(dateString, formatter);
                 log.debug("Successfully parsed date '{}' using format '{}'", dateString, format);
-                return parsedDate;
+                return parsed;
             } catch (DateTimeParseException e) {
                 // Try next format
             }
         }
 
-        throw new IllegalArgumentException("Unable to parse date: " + dateString + ". Supported formats: DD.MM.YYYY, DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD, MM/DD/YYYY");
+        log.warn("Unable to parse date: {}. Supported formats: dd.MM.yyyy, yyyy-MM-dd, MM/dd/yyyy, etc.", dateString);
+        return null; // Return null instead of throwing exception to allow row to be processed
     }
 }

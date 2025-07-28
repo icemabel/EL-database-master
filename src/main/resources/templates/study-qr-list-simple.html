@@ -1261,7 +1261,12 @@
         const form = document.getElementById('editStudyForm');
         const formData = new FormData(form);
         const studyData = Object.fromEntries(formData.entries());
+
+        // Ensure we set the ID for the update
         studyData.id = studyId;
+
+        // Log the data being sent for debugging
+        console.log('Updating study with data:', studyData);
 
         try {
             showLoading(true);
@@ -1283,7 +1288,9 @@
                 closeModal();
                 loadStudies();
             } else {
-                throw new Error(`Update failed: ${response.status}`);
+                const errorText = await response.text();
+                console.error('Update failed:', errorText);
+                throw new Error(`Update failed: ${response.status} - ${errorText}`);
             }
 
         } catch (error) {
@@ -1293,6 +1300,7 @@
             showLoading(false);
         }
     }
+
 
     async function createNewStudy() {
         const form = document.getElementById('addStudyForm');

@@ -12,19 +12,19 @@ public class ChemicalWebController {
     @GetMapping("/chemicals-with-qr")
     public String chemicalsWithQR() {
         log.info("Accessing chemicals list page");
-        return "chemical-qr-list-simple";
+        return "chemicals-with-qr"; // This should match the HTML filename
     }
 
     @GetMapping("/chemical-csv-import-export")
     public String chemicalCsvImportExport() {
         log.info("Accessing chemical CSV import/export page");
-        return "chemical-csv-import-export-simple";
+        return "chemical-qr-list-simple"; // Use your existing CSV page
     }
 
     // Alternative route for consistency
     @GetMapping("/chemicals/csv")
     public String chemicalsCsv() {
         log.info("Accessing chemical CSV import/export page (alternative route)");
-        return "chemical-csv-import-export-simple";
+        return "chemical-qr-list-simple"; // Use your existing CSV page
     }
 }
