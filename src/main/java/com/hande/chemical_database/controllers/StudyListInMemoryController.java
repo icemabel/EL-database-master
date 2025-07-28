@@ -16,7 +16,7 @@ import java.util.*;
  * Use this when you don't have database services set up yet
  */
 @Controller
-@RequestMapping("/api/studies")
+@RequestMapping("/api/studies-memory")  // CHANGED: Different base path to avoid conflicts
 @Slf4j
 public class StudyListInMemoryController {
 

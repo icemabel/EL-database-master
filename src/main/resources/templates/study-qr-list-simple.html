@@ -1,399 +1,1347 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Study List Database</title>
+    <title>Study Management - Table View</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 20px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        .header {
-            background: linear-gradient(135deg, #2c3e50, #3498db);
-            color: white;
+
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            margin: 20px auto;
             padding: 30px;
-            text-align: center;
+            max-width: 95%;
         }
-        .header h1 {
-            margin: 0;
-            font-size: 2.5em;
-            font-weight: 300;
-        }
-        .content {
-            padding: 40px;
-        }
-        .info-box {
-            background: #d1ecf1;
-            border: 1px solid #bee5eb;
-            color: #0c5460;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+
+        .page-header {
+            background: linear-gradient(135deg, #4CAF50, #2196F3);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
             margin-bottom: 30px;
-            flex-wrap: wrap;
-            gap: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
         }
-        .btn {
-            background: #3498db;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 6px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            transition: background 0.3s;
+
+        .page-header h1 {
+            margin-bottom: 10px;
         }
-        .btn:hover {
-            background: #2980b9;
-            color: white;
-            text-decoration: none;
+
+        .page-header p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 1.1em;
         }
-        .btn.success {
-            background: #27ae60;
-        }
-        .btn.success:hover {
-            background: #219a52;
-        }
-        .search-box {
-            flex: 1;
-            max-width: 400px;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 16px;
-        }
-        .studies-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-            gap: 20px;
-        }
-        .study-card {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-        .study-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-        }
-        .study-code {
-            font-size: 1.3em;
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 15px;
-        }
-        .study-info {
-            margin-bottom: 15px;
-        }
-        .info-row {
+
+        /* Navigation Buttons */
+        .nav-buttons {
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 0.9em;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
         }
-        .info-label {
-            font-weight: bold;
-            color: #555;
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            color: white;
+            text-decoration: none;
+            transform: translateY(-2px);
+        }
+
+        .nav-btn.active {
+            background: rgba(255, 255, 255, 0.9);
+            color: #4CAF50;
+            border-color: white;
+        }
+
+        .search-controls {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            border-radius: 25px;
+            padding: 12px 50px 12px 20px;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-box input:focus {
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 0.2rem rgba(76, 175, 80, 0.25);
+            outline: none;
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-select {
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+            padding: 8px 15px;
             min-width: 120px;
         }
-        .info-value {
-            color: #2c3e50;
-            text-align: right;
-            max-width: 60%;
-            word-wrap: break-word;
+
+        .studies-table {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         }
-        .risk-badge {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.8em;
-            font-weight: bold;
+
+        .table {
+            margin-bottom: 0;
         }
-        .risk-low {
-            background: #27ae60;
+
+        .table thead th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
+            border: none;
+            padding: 15px 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
         }
-        .risk-medium {
-            background: #f39c12;
-            color: white;
+
+        .table tbody tr {
+            transition: all 0.3s ease;
         }
-        .risk-high {
-            background: #e74c3c;
-            color: white;
+
+        .table tbody tr:hover {
+            background-color: rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
+
+        .table tbody td {
+            padding: 12px;
+            vertical-align: middle;
+            border-top: 1px solid #f0f0f0;
+        }
+
         .status-badge {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.8em;
-            font-weight: bold;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
+
         .status-completed {
-            background: #27ae60;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
             color: white;
         }
-        .status-progress {
-            background: #3498db;
+
+        .status-in-progress {
+            background: linear-gradient(45deg, #FF9800, #f57c00);
             color: white;
         }
+
         .status-pending {
-            background: #f39c12;
+            background: linear-gradient(45deg, #f44336, #d32f2f);
             color: white;
         }
-        .status-approved {
-            background: #9b59b6;
-            color: white;
+
+        .risk-badge {
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 600;
         }
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #6c757d;
+
+        .risk-low {
+            background: #e8f5e8;
+            color: #2e7d2e;
+            border: 1px solid #4CAF50;
         }
-        .empty-value {
-            color: #999;
-            font-style: italic;
+
+        .risk-medium {
+            background: #fff3e0;
+            color: #e65100;
+            border: 1px solid #FF9800;
         }
-        .status-message {
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
+
+        .risk-high {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #f44336;
+        }
+
+        .study-code {
+            font-family: 'Courier New', monospace;
             font-weight: bold;
+            color: #2c3e50;
+            background: #f8f9fa;
+            padding: 4px 8px;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
         }
-        .status-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+
+        .action-buttons {
+            display: flex;
+            gap: 5px;
         }
-        .status-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f1b0b7;
+
+        .btn-action {
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: none;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-view {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+            color: white;
+        }
+
+        .btn-qr {
+            background: linear-gradient(45deg, #9C27B0, #7B1FA2);
+            color: white;
+        }
+
+        .btn-edit {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+            color: white;
+        }
+
+        .btn-delete {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+            color: white;
+        }
+
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: #ddd;
+            margin-bottom: 20px;
+        }
+
+        .stats-row {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stats-item {
+            text-align: center;
+        }
+
+        .stats-number {
+            font-size: 2rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        .stats-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner-border {
+            color: #667eea;
+        }
+
+        .table-responsive {
+            border-radius: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .nav-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .nav-btn {
+                width: 200px;
+                text-align: center;
+            }
+
+            .filter-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-select {
+                min-width: 100%;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .table tbody td {
+                padding: 8px 4px;
+                font-size: 0.9rem;
+            }
+
+            .btn-action {
+                padding: 4px 8px;
+                font-size: 0.7rem;
+            }
         }
     </style>
 </head>
 <body>
-<div class="container">
-    <div class="header">
-        <h1>📋 Study List Database</h1>
-        <p>E&L Lab OPGD Studies Management</p>
-    </div>
+<div class="container-fluid">
+    <div class="main-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-2">
+                        <i class="fas fa-flask me-3"></i>
+                        Study Management System
+                    </h1>
+                    <p class="mb-0 opacity-75">Manage and track all your laboratory studies</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="btn btn-light me-2" onclick="refreshData()">
+                        <i class="fas fa-sync-alt me-2"></i>Refresh
+                    </button>
+                    <button class="btn btn-success" onclick="addNewStudy()">
+                        <i class="fas fa-plus me-2"></i>Add Study
+                    </button>
+                </div>
+            </div>
 
-    <div class="content">
-        <div class="info-box">
-            <h4>📊 Study Management System</h4>
-            <p>Complete database of E&L laboratory studies with QR code integration for easy tracking.</p>
-        </div>
-
-        <div class="controls">
-            <input type="text" id="searchBox" class="search-box" placeholder="Search studies by code, material, or responsible person...">
-            <div>
-                <a href="/scanner" class="btn">📱 QR Scanner</a>
-                <a href="/csv-import-export" class="btn">📊 CSV Import/Export</a>
-                <a href="/test-db" class="btn success">🔍 Test Database</a>
+            <!-- Navigation Buttons -->
+            <div class="nav-buttons">
+                <a href="/" class="nav-btn">🏠 Home</a>
+                <a href="/chemicals-with-qr" class="nav-btn">🧪 Chemicals List</a>
+                <a href="/studies-with-qr" class="nav-btn active">📊 Studies List</a>
+                <a href="/scanner" class="nav-btn">📱 QR Scanner</a>
             </div>
         </div>
 
-        <div id="statusMessage" style="display: none;"></div>
-
-        <div id="loadingMessage" class="loading">
-            Loading studies from database...
+        <!-- Statistics Row -->
+        <div class="stats-row">
+            <div class="row">
+                <div class="col-md-3 stats-item">
+                    <span class="stats-number" id="totalStudies">0</span>
+                    <span class="stats-label">Total Studies</span>
+                </div>
+                <div class="col-md-3 stats-item">
+                    <span class="stats-number" id="completedStudies">0</span>
+                    <span class="stats-label">Completed</span>
+                </div>
+                <div class="col-md-3 stats-item">
+                    <span class="stats-number" id="inProgressStudies">0</span>
+                    <span class="stats-label">In Progress</span>
+                </div>
+                <div class="col-md-3 stats-item">
+                    <span class="stats-number" id="pendingStudies">0</span>
+                    <span class="stats-label">Pending</span>
+                </div>
+            </div>
         </div>
 
-        <div id="studiesContainer" class="studies-grid" style="display: none;">
-            <!-- Studies will be loaded here via JavaScript -->
+        <!-- Search and Filter Controls -->
+        <div class="search-controls">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" class="form-control"
+                               placeholder="Search studies by code, object, responsible person...">
+                        <i class="fas fa-search search-icon"></i>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="filter-controls">
+                        <select id="statusFilter" class="filter-select">
+                            <option value="">All Status</option>
+                            <option value="completed">Completed</option>
+                            <option value="in progress">In Progress</option>
+                            <option value="pending">Pending</option>
+                        </select>
+                        <select id="riskFilter" class="filter-select">
+                            <option value="">All Risk Levels</option>
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                        </select>
+                        <select id="materialFilter" class="filter-select">
+                            <option value="">All Materials</option>
+                        </select>
+                        <button class="btn btn-outline-secondary" onclick="clearFilters()">
+                            <i class="fas fa-times"></i> Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3">Loading studies...</p>
+        </div>
+
+        <!-- Studies Table -->
+        <div class="studies-table" id="studiesTable">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th onclick="sortTable('studyCode')">
+                            Study Code <i class="fas fa-sort"></i>
+                        </th>
+                        <th onclick="sortTable('materialType')">
+                            Material Type <i class="fas fa-sort"></i>
+                        </th>
+                        <th onclick="sortTable('objectOfStudy')">
+                            Object of Study <i class="fas fa-sort"></i>
+                        </th>
+                        <th onclick="sortTable('responsiblePerson')">
+                            Responsible <i class="fas fa-sort"></i>
+                        </th>
+                        <th onclick="sortTable('status')">
+                            Status <i class="fas fa-sort"></i>
+                        </th>
+                        <th onclick="sortTable('riskLevel')">
+                            Risk Level <i class="fas fa-sort"></i>
+                        </th>
+                        <th onclick="sortTable('studyLevel')">
+                            Study Level <i class="fas fa-sort"></i>
+                        </th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody id="studiesTableBody">
+                    <!-- Table content will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state d-none" id="emptyState">
+            <i class="fas fa-search"></i>
+            <h4>No Studies Found</h4>
+            <p>No studies match your current search criteria.</p>
+            <button class="btn btn-primary" onclick="clearFilters()">
+                <i class="fas fa-times me-2"></i>Clear Filters
+            </button>
         </div>
     </div>
 </div>
 
+<!-- JavaScript -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 <script>
+    // Global variables
     let allStudies = [];
+    let filteredStudies = [];
+    let sortColumn = '';
+    let sortDirection = 'asc';
 
-    // Load studies when page loads
+    // Initialize the page
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('Page loaded, starting to load studies...');
         loadStudies();
-
-        // Add search functionality
-        document.getElementById('searchBox').addEventListener('input', function(e) {
-            filterStudies(e.target.value);
-        });
+        setupEventListeners();
     });
 
+    function setupEventListeners() {
+        // Search input
+        document.getElementById('searchInput').addEventListener('input', function() {
+            debounce(filterStudies, 300)();
+        });
+
+        // Filter dropdowns
+        document.getElementById('statusFilter').addEventListener('change', filterStudies);
+        document.getElementById('riskFilter').addEventListener('change', filterStudies);
+        document.getElementById('materialFilter').addEventListener('change', filterStudies);
+    }
+
+    // Debounce function for search
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // Load studies from API
     async function loadStudies() {
+        showLoading(true);
         try {
-            console.log('Making request to /api/studies...');
-
-            const response = await fetch('/api/studies', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            console.log('Response status:', response.status);
-            console.log('Response ok:', response.ok);
+            // Try database API first, fall back to memory API
+            let response;
+            try {
+                response = await fetch('/api/studies-db');
+            } catch (error) {
+                console.log('Database API not available, trying memory API...');
+                response = await fetch('/api/studies-memory');
+            }
 
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
 
             allStudies = await response.json();
-            console.log('Loaded studies:', allStudies.length);
+            filteredStudies = [...allStudies];
 
-            displayStudies(allStudies);
+            // Populate material filter with unique values
+            populateMaterialFilter();
 
-            document.getElementById('loadingMessage').style.display = 'none';
-            document.getElementById('studiesContainer').style.display = 'grid';
-
-            showStatus(`Successfully loaded ${allStudies.length} studies`, 'success');
+            displayStudies();
+            updateStatistics();
+            console.log(`Loaded ${allStudies.length} studies successfully`);
 
         } catch (error) {
             console.error('Error loading studies:', error);
-            showStatus('Error loading studies: ' + error.message, 'error');
-            document.getElementById('loadingMessage').textContent = 'Error loading studies: ' + error.message;
+            showError('Failed to load studies. Please check the console for details.');
+        } finally {
+            showLoading(false);
         }
     }
 
-    function displayStudies(studies) {
-        const container = document.getElementById('studiesContainer');
+    // Populate material filter with unique values from data
+    function populateMaterialFilter() {
+        const materialFilter = document.getElementById('materialFilter');
 
-        if (studies.length === 0) {
-            container.innerHTML = '<div class="loading">No studies found in database.</div>';
+        // Get unique material types
+        const uniqueMaterials = [...new Set(allStudies
+            .map(study => study.materialType)
+            .filter(material => material && material.trim() !== '')
+        )].sort();
+
+        // Clear existing options except "All Materials"
+        materialFilter.innerHTML = '<option value="">All Materials</option>';
+
+        // Add unique materials as options
+        uniqueMaterials.forEach(material => {
+            const option = document.createElement('option');
+            option.value = material;
+            option.textContent = material;
+            materialFilter.appendChild(option);
+        });
+    }
+
+    // Display studies in table
+    function displayStudies() {
+        const tbody = document.getElementById('studiesTableBody');
+        const emptyState = document.getElementById('emptyState');
+        const studiesTable = document.getElementById('studiesTable');
+
+        if (filteredStudies.length === 0) {
+            studiesTable.classList.add('d-none');
+            emptyState.classList.remove('d-none');
             return;
         }
 
-        container.innerHTML = studies.map(study => createStudyCard(study)).join('');
+        studiesTable.classList.remove('d-none');
+        emptyState.classList.add('d-none');
+
+        tbody.innerHTML = '';
+
+        filteredStudies.forEach(study => {
+            const row = createStudyRow(study);
+            tbody.appendChild(row);
+        });
     }
 
-    function createStudyCard(study) {
-        const riskBadge = getRiskBadge(study.riskLevel);
-        const statusBadge = getStatusBadge(study.status);
+    // Create individual study row
+    function createStudyRow(study) {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>
+                <div class="study-code">${study.studyCode || 'N/A'}</div>
+            </td>
+            <td>${study.materialType || 'N/A'}</td>
+            <td>${study.objectOfStudy || 'N/A'}</td>
+            <td>
+                <i class="fas fa-user me-1"></i>
+                ${study.responsiblePerson || 'N/A'}
+            </td>
+            <td>
+                <span class="status-badge status-${getStatusClass(study.status)}">
+                    ${study.status || 'Unknown'}
+                </span>
+            </td>
+            <td>
+                <span class="risk-badge risk-${getRiskClass(study.riskLevel)}">
+                    ${study.riskLevel || 'N/A'}
+                </span>
+            </td>
+            <td>
+                <strong>${study.studyLevel || 'N/A'}</strong>
+            </td>
+            <td>
+                <div class="action-buttons">
+                    <button class="btn-action btn-view" onclick="viewStudy('${study.studyCode}')" title="View Details">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn-action btn-qr" onclick="generateQR('${study.id || study.studyCode}')" title="Generate QR">
+                        <i class="fas fa-qrcode"></i>
+                    </button>
+                    <button class="btn-action btn-edit" onclick="editStudy('${study.id || study.studyCode}')" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-action btn-delete" onclick="deleteStudy('${study.id || study.studyCode}')" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+        return row;
+    }
 
+    // Helper functions for styling
+    function getStatusClass(status) {
+        if (!status) return 'pending';
+        const normalizedStatus = status.toLowerCase().replace(/\s+/g, '-');
+        return ['completed', 'in-progress', 'pending'].includes(normalizedStatus) ? normalizedStatus : 'pending';
+    }
+
+    function getRiskClass(risk) {
+        if (!risk) return 'low';
+        return risk.toLowerCase();
+    }
+
+    // Filter studies based on search and dropdowns
+    function filterStudies() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
+        const riskFilter = document.getElementById('riskFilter').value.toLowerCase();
+        const materialFilter = document.getElementById('materialFilter').value.toLowerCase();
+
+        filteredStudies = allStudies.filter(study => {
+            // Search filter
+            const matchesSearch = !searchTerm ||
+                (study.studyCode && study.studyCode.toLowerCase().includes(searchTerm)) ||
+                (study.objectOfStudy && study.objectOfStudy.toLowerCase().includes(searchTerm)) ||
+                (study.responsiblePerson && study.responsiblePerson.toLowerCase().includes(searchTerm)) ||
+                (study.materialType && study.materialType.toLowerCase().includes(searchTerm)) ||
+                (study.info && study.info.toLowerCase().includes(searchTerm));
+
+            // Status filter
+            const matchesStatus = !statusFilter ||
+                (study.status && study.status.toLowerCase().includes(statusFilter));
+
+            // Risk filter
+            const matchesRisk = !riskFilter ||
+                (study.riskLevel && study.riskLevel.toLowerCase() === riskFilter);
+
+            // Material filter
+            const matchesMaterial = !materialFilter ||
+                (study.materialType && study.materialType.toLowerCase() === materialFilter);
+
+            return matchesSearch && matchesStatus && matchesRisk && matchesMaterial;
+        });
+
+        displayStudies();
+        updateStatistics();
+    }
+
+    // Clear all filters
+    function clearFilters() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('statusFilter').value = '';
+        document.getElementById('riskFilter').value = '';
+        document.getElementById('materialFilter').value = '';
+
+        filteredStudies = [...allStudies];
+        displayStudies();
+        updateStatistics();
+    }
+
+    // Update statistics
+    function updateStatistics() {
+        const total = filteredStudies.length;
+        const completed = filteredStudies.filter(s => s.status && s.status.toLowerCase() === 'completed').length;
+        const inProgress = filteredStudies.filter(s => s.status && s.status.toLowerCase().includes('progress')).length;
+        const pending = filteredStudies.filter(s => s.status && s.status.toLowerCase() === 'pending').length;
+
+        document.getElementById('totalStudies').textContent = total;
+        document.getElementById('completedStudies').textContent = completed;
+        document.getElementById('inProgressStudies').textContent = inProgress;
+        document.getElementById('pendingStudies').textContent = pending;
+    }
+
+    // Sort table by column
+    function sortTable(column) {
+        if (sortColumn === column) {
+            sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            sortColumn = column;
+            sortDirection = 'asc';
+        }
+
+        filteredStudies.sort((a, b) => {
+            let aVal = a[column] || '';
+            let bVal = b[column] || '';
+
+            if (typeof aVal === 'string') {
+                aVal = aVal.toLowerCase();
+                bVal = bVal.toLowerCase();
+            }
+
+            if (sortDirection === 'asc') {
+                return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+            } else {
+                return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+            }
+        });
+
+        displayStudies();
+        updateSortIcons();
+    }
+
+    // Update sort icons
+    function updateSortIcons() {
+        document.querySelectorAll('th i.fas').forEach(icon => {
+            icon.className = 'fas fa-sort';
+        });
+
+        const activeHeader = document.querySelector(`th[onclick="sortTable('${sortColumn}')"] i`);
+        if (activeHeader) {
+            activeHeader.className = `fas fa-sort-${sortDirection === 'asc' ? 'up' : 'down'}`;
+        }
+    }
+
+    // Action functions
+    function viewStudy(studyCode) {
+        // Create and show modal with study details
+        showStudyDetailsModal(studyCode);
+    }
+
+    async function generateQR(studyId) {
+        try {
+            showLoading(true);
+
+            // First generate the QR code
+            let response;
+            try {
+                response = await fetch(`/api/studies-db/${studyId}/generate-qr`, { method: 'POST' });
+            } catch (error) {
+                response = await fetch(`/api/studies-memory/${studyId}/generate-qr`, { method: 'POST' });
+            }
+
+            if (!response.ok) {
+                throw new Error(`Failed to generate QR code: ${response.status}`);
+            }
+
+            const result = await response.text();
+
+            // Now get the QR code image
+            let imageResponse;
+            try {
+                imageResponse = await fetch(`/api/studies-db/${studyId}/qr-image`);
+            } catch (error) {
+                imageResponse = await fetch(`/api/studies-memory/${studyId}/qr-image`);
+            }
+
+            if (imageResponse.ok) {
+                const blob = await imageResponse.blob();
+                const imageUrl = URL.createObjectURL(blob);
+                showQRCodeModal(imageUrl, studyId);
+            } else {
+                showSuccess('QR code generated successfully!');
+            }
+
+        } catch (error) {
+            console.error('Error generating QR code:', error);
+            showError('Failed to generate QR code: ' + error.message);
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    function editStudy(studyId) {
+        // Find the study data
+        const study = allStudies.find(s => s.id == studyId || s.studyCode == studyId);
+        if (study) {
+            showEditStudyModal(study);
+        } else {
+            showError('Study not found');
+        }
+    }
+
+    async function deleteStudy(studyId) {
+        if (!confirm(`Are you sure you want to delete this study?\n\nThis action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            showLoading(true);
+
+            let response;
+            try {
+                response = await fetch(`/api/studies-db/${studyId}`, { method: 'DELETE' });
+            } catch (error) {
+                // For memory API, we need to implement delete differently
+                showError('Delete functionality not implemented for memory API');
+                return;
+            }
+
+            if (response.ok) {
+                showSuccess('Study deleted successfully!');
+                loadStudies(); // Reload the data
+            } else {
+                throw new Error(`Delete failed: ${response.status}`);
+            }
+
+        } catch (error) {
+            console.error('Error deleting study:', error);
+            showError('Failed to delete study: ' + error.message);
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    function addNewStudy() {
+        showAddStudyModal();
+    }
+
+    function refreshData() {
+        loadStudies();
+    }
+
+    // Utility functions
+    function showLoading(show) {
+        document.getElementById('loadingSpinner').style.display = show ? 'block' : 'none';
+        if (!show) {
+            document.getElementById('studiesTable').style.display = 'block';
+        }
+    }
+
+    function showError(message) {
+        // Create and show error toast
+        showToast(message, 'error');
+    }
+
+    function showSuccess(message) {
+        // Create and show success toast
+        showToast(message, 'success');
+    }
+
+    function showToast(message, type = 'info') {
+        // Remove existing toasts
+        const existingToasts = document.querySelectorAll('.toast-notification');
+        existingToasts.forEach(toast => toast.remove());
+
+        // Create toast element
+        const toast = document.createElement('div');
+        toast.className = `toast-notification toast-${type}`;
+        toast.innerHTML = `
+            <div class="toast-content">
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+                <span>${message}</span>
+                <button class="toast-close" onclick="this.parentElement.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+
+        // Add toast styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .toast-notification {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 9999;
+                max-width: 400px;
+                background: white;
+                border-radius: 10px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                animation: slideInRight 0.3s ease;
+            }
+            .toast-success { border-left: 4px solid #4CAF50; }
+            .toast-error { border-left: 4px solid #f44336; }
+            .toast-info { border-left: 4px solid #2196F3; }
+            .toast-content {
+                padding: 15px 20px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .toast-close {
+                background: none;
+                border: none;
+                color: #666;
+                cursor: pointer;
+                margin-left: auto;
+            }
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+        `;
+
+        document.head.appendChild(style);
+        document.body.appendChild(toast);
+
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.remove();
+            }
+        }, 5000);
+    }
+
+    // Modal functions
+    function showStudyDetailsModal(studyCode) {
+        const study = allStudies.find(s => s.studyCode === studyCode);
+        if (!study) {
+            showError('Study not found');
+            return;
+        }
+
+        const modal = createModal('Study Details', `
+            <div class="study-details">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Study Information</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>Study Code:</strong></td><td>${study.studyCode || 'N/A'}</td></tr>
+                            <tr><td><strong>Status:</strong></td><td><span class="status-badge status-${getStatusClass(study.status)}">${study.status || 'N/A'}</span></td></tr>
+                            <tr><td><strong>Study Level:</strong></td><td>${study.studyLevel || 'N/A'}</td></tr>
+                            <tr><td><strong>Risk Level:</strong></td><td><span class="risk-badge risk-${getRiskClass(study.riskLevel)}">${study.riskLevel || 'N/A'}</span></td></tr>
+                            <tr><td><strong>Material Type:</strong></td><td>${study.materialType || 'N/A'}</td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Study Details</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>Object of Study:</strong></td><td>${study.objectOfStudy || 'N/A'}</td></tr>
+                            <tr><td><strong>Responsible Person:</strong></td><td>${study.responsiblePerson || 'N/A'}</td></tr>
+                            <tr><td><strong>Document Codes:</strong></td><td>${study.documentCodes || 'N/A'}</td></tr>
+                            <tr><td><strong>Number of Samples:</strong></td><td>${study.numberOfSamples || 'N/A'}</td></tr>
+                        </table>
+                    </div>
+                </div>
+                ${study.info ? `<div class="mt-3"><h6>Additional Information</h6><p class="bg-light p-3 rounded">${study.info}</p></div>` : ''}
+            </div>
+        `, [
+            { text: 'Generate QR Code', class: 'btn-primary', onclick: `generateQR('${study.id || study.studyCode}')` },
+            { text: 'Edit Study', class: 'btn-warning', onclick: `editStudy('${study.id || study.studyCode}')` },
+            { text: 'Close', class: 'btn-secondary', onclick: 'closeModal()' }
+        ]);
+
+        showModal(modal);
+    }
+
+    function showQRCodeModal(imageUrl, studyId) {
+        const modal = createModal('QR Code Generated', `
+            <div class="text-center">
+                <img src="${imageUrl}" alt="QR Code" class="img-fluid mb-3" style="max-width: 300px;">
+                <p>QR Code generated successfully for study ID: <strong>${studyId}</strong></p>
+                <p class="text-muted">Scan this code to view study details</p>
+            </div>
+        `, [
+            { text: 'Download', class: 'btn-primary', onclick: `downloadQRCode('${imageUrl}', '${studyId}')` },
+            { text: 'Close', class: 'btn-secondary', onclick: 'closeModal()' }
+        ]);
+
+        showModal(modal);
+    }
+
+    function showEditStudyModal(study) {
+        const modal = createModal('Edit Study', `
+            <form id="editStudyForm">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Study Code</label>
+                            <input type="text" class="form-control" name="studyCode" value="${study.studyCode || ''}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Material Type</label>
+                            <input type="text" class="form-control" name="materialType" value="${study.materialType || ''}" placeholder="Enter material type">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Study Level</label>
+                            <select class="form-control" name="studyLevel">
+                                <option value="">Select Level</option>
+                                <option value="A" ${study.studyLevel === 'A' ? 'selected' : ''}>A</option>
+                                <option value="B" ${study.studyLevel === 'B' ? 'selected' : ''}>B</option>
+                                <option value="C" ${study.studyLevel === 'C' ? 'selected' : ''}>C</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Risk Level</label>
+                            <select class="form-control" name="riskLevel">
+                                <option value="">Select Risk</option>
+                                <option value="Low" ${study.riskLevel === 'Low' ? 'selected' : ''}>Low</option>
+                                <option value="Medium" ${study.riskLevel === 'Medium' ? 'selected' : ''}>Medium</option>
+                                <option value="High" ${study.riskLevel === 'High' ? 'selected' : ''}>High</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Object of Study</label>
+                            <input type="text" class="form-control" name="objectOfStudy" value="${study.objectOfStudy || ''}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Responsible Person</label>
+                            <input type="text" class="form-control" name="responsiblePerson" value="${study.responsiblePerson || ''}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Status</label>
+                            <select class="form-control" name="status">
+                                <option value="">Select Status</option>
+                                <option value="pending" ${study.status === 'pending' ? 'selected' : ''}>Pending</option>
+                                <option value="in progress" ${study.status === 'in progress' ? 'selected' : ''}>In Progress</option>
+                                <option value="completed" ${study.status === 'completed' ? 'selected' : ''}>Completed</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Number of Samples</label>
+                            <input type="text" class="form-control" name="numberOfSamples" value="${study.numberOfSamples || ''}">
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Document Codes</label>
+                    <input type="text" class="form-control" name="documentCodes" value="${study.documentCodes || ''}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Additional Information</label>
+                    <textarea class="form-control" name="info" rows="3">${study.info || ''}</textarea>
+                </div>
+            </form>
+        `, [
+            { text: 'Save Changes', class: 'btn-success', onclick: `saveStudyChanges('${study.id || study.studyCode}')` },
+            { text: 'Cancel', class: 'btn-secondary', onclick: 'closeModal()' }
+        ]);
+
+        showModal(modal);
+    }
+
+    function showAddStudyModal() {
+        const modal = createModal('Add New Study', `
+            <form id="addStudyForm">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Study Code *</label>
+                            <input type="text" class="form-control" name="studyCode" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Material Type</label>
+                            <input type="text" class="form-control" name="materialType" placeholder="Enter material type">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Study Level</label>
+                            <select class="form-control" name="studyLevel">
+                                <option value="">Select Level</option>
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Risk Level</label>
+                            <select class="form-control" name="riskLevel">
+                                <option value="">Select Risk</option>
+                                <option value="Low">Low</option>
+                                <option value="Medium">Medium</option>
+                                <option value="High">High</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Object of Study</label>
+                            <input type="text" class="form-control" name="objectOfStudy">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Responsible Person</label>
+                            <input type="text" class="form-control" name="responsiblePerson">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Status</label>
+                            <select class="form-control" name="status">
+                                <option value="pending">Pending</option>
+                                <option value="in progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Number of Samples</label>
+                            <input type="text" class="form-control" name="numberOfSamples">
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Document Codes</label>
+                    <input type="text" class="form-control" name="documentCodes">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Additional Information</label>
+                    <textarea class="form-control" name="info" rows="3"></textarea>
+                </div>
+            </form>
+        `, [
+            { text: 'Create Study', class: 'btn-success', onclick: 'createNewStudy()' },
+            { text: 'Cancel', class: 'btn-secondary', onclick: 'closeModal()' }
+        ]);
+
+        showModal(modal);
+    }
+
+    // Modal utility functions
+    function createModal(title, content, buttons = []) {
         return `
-            <div class="study-card">
-                <div class="study-code">${study.studyCode} ${riskBadge}</div>
-
-                <div class="study-info">
-                    <div class="info-row">
-                        <span class="info-label">ID:</span>
-                        <span class="info-value">${study.id}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Material Type:</span>
-                        <span class="info-value ${!study.materialType ? 'empty-value' : ''}">${study.materialType || 'Not specified'}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Study Level:</span>
-                        <span class="info-value ${!study.studyLevel ? 'empty-value' : ''}">${study.studyLevel || 'Not specified'}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Object of Study:</span>
-                        <span class="info-value ${!study.objectOfStudy ? 'empty-value' : ''}">${study.objectOfStudy || 'Not specified'}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Responsible:</span>
-                        <span class="info-value ${!study.responsiblePerson ? 'empty-value' : ''}">${study.responsiblePerson || 'Not assigned'}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Samples:</span>
-                        <span class="info-value ${!study.numberOfSamples ? 'empty-value' : ''}">${study.numberOfSamples || 'Not specified'}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Status:</span>
-                        <span class="info-value">${statusBadge}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Documents:</span>
-                        <span class="info-value ${!study.documentCodes ? 'empty-value' : ''}">${study.documentCodes || 'Not specified'}</span>
-                    </div>
-                    ${study.info ? `
-                    <div class="info-row">
-                        <span class="info-label">Info:</span>
-                        <span class="info-value">${study.info}</span>
-                    </div>
-                    ` : ''}
-                    <div class="info-row">
-                        <span class="info-label">QR Code:</span>
-                        <span class="info-value ${!study.qrCode ? 'empty-value' : ''}">${study.qrCode || 'Not generated'}</span>
+            <div class="modal fade" id="dynamicModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">${title}</h5>
+                            <button type="button" class="btn-close" onclick="closeModal()"></button>
+                        </div>
+                        <div class="modal-body">
+                            ${content}
+                        </div>
+                        <div class="modal-footer">
+                            ${buttons.map(btn => `
+                                <button type="button" class="btn ${btn.class}" onclick="${btn.onclick}">
+                                    ${btn.text}
+                                </button>
+                            `).join('')}
+                        </div>
                     </div>
                 </div>
             </div>
         `;
     }
 
-    function getRiskBadge(riskLevel) {
-        if (!riskLevel) return '';
-
-        const level = riskLevel.toLowerCase();
-        if (level.includes('low')) {
-            return '<span class="risk-badge risk-low">🟢 LOW RISK</span>';
-        } else if (level.includes('medium')) {
-            return '<span class="risk-badge risk-medium">🟡 MEDIUM RISK</span>';
-        } else if (level.includes('high')) {
-            return '<span class="risk-badge risk-high">🔴 HIGH RISK</span>';
+    function showModal(modalHtml) {
+        // Remove existing modal and backdrop
+        const existingModal = document.getElementById('dynamicModal');
+        if (existingModal) {
+            existingModal.remove();
         }
-        return `<span class="risk-badge">${riskLevel}</span>`;
+
+        // Remove any existing backdrops
+        const existingBackdrops = document.querySelectorAll('.modal-backdrop');
+        existingBackdrops.forEach(backdrop => backdrop.remove());
+
+        // Clean body classes
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
+
+        // Add new modal to body
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Show modal with event listeners
+        const modalElement = document.getElementById('dynamicModal');
+        const modal = new bootstrap.Modal(modalElement, {
+            backdrop: 'static',
+            keyboard: true
+        });
+
+        // Add event listener for proper cleanup when modal is hidden
+        modalElement.addEventListener('hidden.bs.modal', function () {
+            // Remove the modal element
+            if (modalElement.parentElement) {
+                modalElement.remove();
+            }
+
+            // Clean up any remaining backdrops
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            backdrops.forEach(backdrop => backdrop.remove());
+
+            // Ensure body is properly reset
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('overflow');
+            document.body.style.removeProperty('padding-right');
+        });
+
+        modal.show();
     }
 
-    function getStatusBadge(status) {
-        if (!status) return '<span class="empty-value">Not specified</span>';
+    function closeModal() {
+        const modalElement = document.getElementById('dynamicModal');
+        if (modalElement) {
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) {
+                modal.hide();
+            }
 
-        const statusLower = status.toLowerCase();
-        if (statusLower.includes('completed')) {
-            return '<span class="status-badge status-completed">✅ COMPLETED</span>';
-        } else if (statusLower.includes('progress')) {
-            return '<span class="status-badge status-progress">🔄 IN PROGRESS</span>';
-        } else if (statusLower.includes('pending')) {
-            return '<span class="status-badge status-pending">⏳ PENDING</span>';
-        } else if (statusLower.includes('approved')) {
-            return '<span class="status-badge status-approved">✅ APPROVED</span>';
+            // Remove backdrop and modal after hiding
+            setTimeout(() => {
+                // Remove any remaining backdrops
+                const backdrops = document.querySelectorAll('.modal-backdrop');
+                backdrops.forEach(backdrop => backdrop.remove());
+
+                // Remove the modal element
+                if (modalElement.parentElement) {
+                    modalElement.remove();
+                }
+
+                // Ensure body classes are cleaned up
+                document.body.classList.remove('modal-open');
+                document.body.style.removeProperty('overflow');
+                document.body.style.removeProperty('padding-right');
+            }, 200);
         }
-        return `<span class="status-badge">${status}</span>`;
     }
 
-    function filterStudies(searchTerm) {
-        const filtered = allStudies.filter(study =>
-            study.studyCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (study.materialType && study.materialType.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (study.objectOfStudy && study.objectOfStudy.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (study.responsiblePerson && study.responsiblePerson.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (study.status && study.status.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (study.info && study.info.toLowerCase().includes(searchTerm.toLowerCase()))
-        );
+    // Form submission functions
+    async function saveStudyChanges(studyId) {
+        const form = document.getElementById('editStudyForm');
+        const formData = new FormData(form);
+        const studyData = Object.fromEntries(formData.entries());
+        studyData.id = studyId;
 
-        displayStudies(filtered);
+        try {
+            showLoading(true);
+
+            let response;
+            try {
+                response = await fetch(`/api/studies-db/${studyId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(studyData)
+                });
+            } catch (error) {
+                showError('Edit functionality not available for memory API');
+                return;
+            }
+
+            if (response.ok) {
+                showSuccess('Study updated successfully!');
+                closeModal();
+                loadStudies();
+            } else {
+                throw new Error(`Update failed: ${response.status}`);
+            }
+
+        } catch (error) {
+            console.error('Error updating study:', error);
+            showError('Failed to update study: ' + error.message);
+        } finally {
+            showLoading(false);
+        }
     }
 
-    function showStatus(message, type) {
-        const statusDiv = document.getElementById('statusMessage');
-        statusDiv.textContent = message;
-        statusDiv.className = `status-message status-${type}`;
-        statusDiv.style.display = 'block';
+    async function createNewStudy() {
+        const form = document.getElementById('addStudyForm');
+        const formData = new FormData(form);
+        const studyData = Object.fromEntries(formData.entries());
 
-        setTimeout(() => {
-            statusDiv.style.display = 'none';
-        }, 5000);
+        if (!studyData.studyCode.trim()) {
+            showError('Study Code is required');
+            return;
+        }
+
+        try {
+            showLoading(true);
+
+            let response;
+            try {
+                response = await fetch('/api/studies-db', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(studyData)
+                });
+            } catch (error) {
+                showError('Create functionality not available for memory API');
+                return;
+            }
+
+            if (response.ok) {
+                showSuccess('Study created successfully!');
+                closeModal();
+                loadStudies();
+            } else {
+                throw new Error(`Create failed: ${response.status}`);
+            }
+
+        } catch (error) {
+            console.error('Error creating study:', error);
+            showError('Failed to create study: ' + error.message);
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    function downloadQRCode(imageUrl, studyId) {
+        const link = document.createElement('a');
+        link.href = imageUrl;
+        link.download = `study_${studyId}_qr_code.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 </script>
 </body>

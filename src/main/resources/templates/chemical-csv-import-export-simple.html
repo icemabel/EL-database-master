@@ -1,10 +1,9 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CSV Import/Export - Chemical Database</title>
-  <script src="/js/auth-check.js"></script>
   <style>
     body {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -163,7 +162,7 @@
         width: 100%;
         border-collapse: collapse;
         margin-top: 15px;
-        font-size: 14px;
+        font-size: 12px;
     }
     .template-table th,
     .template-table td {
@@ -191,20 +190,33 @@
         color: white;
         text-decoration: none;
     }
+    .info-box {
+        background: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
   </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
-    <h1>📊 CSV Import/Export</h1>
+    <h1>🧪 Chemical CSV Import/Export</h1>
     <p>Bulk manage chemicals with CSV files</p>
   </div>
 
   <div class="content">
+    <div class="info-box">
+      <h4>🔓 Authentication Disabled</h4>
+      <p>This is a simplified version with all security disabled for testing database functionality.</p>
+    </div>
+
     <!-- CSV Template Section -->
     <div class="csv-template">
       <h3>📋 CSV Template Format</h3>
-      <p>Your CSV file should include the following columns in this exact order:</p>
+      <p>Your CSV file should include the following columns:</p>
       <table class="template-table">
         <thead>
         <tr>
@@ -228,17 +240,19 @@
           <td>Room A-101</td>
           <td>false</td>
           <td>John Doe</td>
-          <td>2024-01-15</td>
+          <td>15.01.2024</td>
           <td>500g</td>
         </tr>
         </tbody>
       </table>
-      <p><strong>Notes:</strong></p>
+      <p><strong>Important Notes:</strong></p>
       <ul>
-        <li>toxicState should be "true" or "false"</li>
-        <li>orderDate format: YYYY-MM-DD</li>
-        <li>name field is required and must be unique</li>
-        <li>storage field is required</li>
+        <li><strong>name</strong> and <strong>storage</strong> fields are required</li>
+        <li><strong>toxicState</strong> should be "true"/"false" or "TRUE"/"FALSE" (or leave empty)</li>
+        <li><strong>orderDate</strong> format: DD.MM.YYYY (e.g., 15.01.2024) or leave empty</li>
+        <li>Also supports: DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD formats</li>
+        <li>The file supports both comma (,) and semicolon (;) separators</li>
+        <li>Existing chemicals with the same name will be skipped</li>
       </ul>
       <div style="text-align: center; margin-top: 15px;">
         <button class="btn" onclick="downloadTemplate()">📥 Download CSV Template</button>
@@ -257,7 +271,7 @@
     <!-- Import Section -->
     <div class="section">
       <h2>📤 Import Chemicals</h2>
-      <p>Upload a CSV file to add new chemicals to the database. Existing chemicals will be skipped.</p>
+      <p>Upload a CSV file to add new chemicals to the database.</p>
 
       <div class="upload-area" onclick="document.getElementById('csvFile').click()">
         <div id="upload-text">
@@ -287,7 +301,8 @@
     <div id="status-message" class="status-message"></div>
 
     <div style="text-align: center;">
-      <a href="/chemicals-with-qr" class="back-button">📋 View All Chemicals</a>
+      <a href="/chemicals-with-qr" class="back-button">🧪 View All Chemicals</a>
+      <a href="/studies-with-qr" class="back-button">📋 View Studies</a>
       <a href="/" class="back-button">🏠 Home</a>
     </div>
   </div>
@@ -353,12 +368,6 @@
           return;
       }
 
-      const token = getAuthToken();
-      if (!token) {
-          showStatus('Please log in to upload files.', 'error');
-          return;
-      }
-
       const formData = new FormData();
       formData.append('file', selectedFile);
 
@@ -370,7 +379,7 @@
       try {
           showStatus('Uploading and processing CSV file...', 'info');
 
-          // Simulate progress (since we can't track actual upload progress easily)
+          // Simulate progress
           let progress = 0;
           const progressInterval = setInterval(() => {
               progress += 10;
@@ -382,9 +391,6 @@
 
           const response = await fetch('/api/chemicals/upload-csv', {
               method: 'POST',
-              headers: {
-                  'Authorization': `Bearer ${token}`
-              },
               body: formData
           });
 
@@ -393,8 +399,13 @@
 
           if (response.ok) {
               const message = await response.text();
-              showStatus(message, 'success');
+              showStatus(message + ' - Redirecting to chemicals list...', 'success');
               resetUpload();
+
+              // Redirect to chemicals list after successful upload
+              setTimeout(() => {
+                  window.location.href = '/chemicals-with-qr';
+              }, 2000);
           } else {
               const errorMessage = await response.text();
               showStatus(`Upload failed: ${errorMessage}`, 'error');
@@ -430,94 +441,16 @@
 
   async function exportChemicals() {
       try {
-          const token = getAuthToken();
-          if (!token) {
-              showStatus('Please log in to export data.', 'error');
-              return;
-          }
-
           showStatus('Preparing CSV export...', 'info');
 
-          // First, get all chemicals
-          const response = await fetch('/api/chemicals', {
-              headers: {
-                  'Authorization': `Bearer ${token}`
-              }
-          });
+          // Trigger download by navigating to the export endpoint
+          window.location.href = '/api/chemicals/export-csv';
 
-          if (!response.ok) {
-              throw new Error('Failed to fetch chemicals');
-          }
-
-          const chemicals = await response.json();
-
-          if (chemicals.length === 0) {
-              showStatus('No chemicals found to export.', 'error');
-              return;
-          }
-
-          // Convert to CSV
-          const csv = convertToCSV(chemicals);
-
-          // Download CSV
-          downloadCSV(csv, 'chemicals_export.csv');
-
-          showStatus(`Successfully exported ${chemicals.length} chemicals.`, 'success');
+          showStatus('Export initiated! Check your downloads.', 'success');
 
       } catch (error) {
           console.error('Export error:', error);
           showStatus('Export failed. Please try again.', 'error');
-      }
-  }
-
-  function convertToCSV(chemicals) {
-      const headers = ['name', 'CASNo', 'LotNo', 'producer', 'storage', 'toxicState', 'responsible', 'orderDate', 'weight'];
-      const csvRows = [];
-
-      // Add header row
-      csvRows.push(headers.join(','));
-
-      // Add data rows
-      chemicals.forEach(chemical => {
-          const row = headers.map(header => {
-              let value = chemical[header];
-
-              // Handle null/undefined values
-              if (value === null || value === undefined) {
-                  value = '';
-              }
-
-              // Handle date formatting
-              if (header === 'orderDate' && value) {
-                  value = value; // Assuming it's already in YYYY-MM-DD format
-              }
-
-              // Escape quotes and wrap in quotes if necessary
-              if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
-                  value = '"' + value.replace(/"/g, '""') + '"';
-              }
-
-              return value;
-          });
-          csvRows.push(row.join(','));
-      });
-
-      return csvRows.join('\n');
-  }
-
-  function downloadCSV(csv, filename) {
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-
-      if (link.download !== undefined) {
-          const url = URL.createObjectURL(blob);
-          link.setAttribute('href', url);
-          link.setAttribute('download', filename);
-          link.style.visibility = 'hidden';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
       }
   }
 
@@ -538,21 +471,30 @@
       }
   }
 
-  function getAuthToken() {
-      // In a real application, you would get this from localStorage, sessionStorage, or cookies
-      return localStorage.getItem('jwt-token') || sessionStorage.getItem('jwt-token');
-  }
-
   function downloadTemplate() {
-      const csvContent = `name,CASNo,LotNo,producer,storage,toxicState,responsible,orderDate,weight
-Sodium Chloride,7647-14-5,LOT001,ChemCorp,Room A-101,false,John Doe,2024-01-15,500g
-Hydrochloric Acid,7647-01-0,LOT002,AcidCorp,Room B-201,true,Jane Smith,2024-01-20,1L
-Ethanol,64-17-5,LOT003,SolventCorp,Room A-102,false,Bob Johnson,2024-02-01,2L
-Sulfuric Acid,7664-93-9,LOT004,AcidCorp,Room B-202,true,Alice Brown,2024-02-10,500ml
-Acetone,67-64-1,LOT005,SolventPro,Room C-301,false,Charlie Wilson,2024-02-15,1L`;
+      // Use semicolons to match European Excel format with European date format
+      const csvContent = `name;CASNo;LotNo;producer;storage;toxicState;responsible;orderDate;weight
+Sodium Chloride;7647-14-5;LOT001;ChemCorp;Room A-101;false;John Doe;15.01.2024;500g
+Hydrochloric Acid;7647-01-0;LOT002;AcidCorp;Room B-201;true;Jane Smith;20.01.2024;1L
+Ethanol;64-17-5;LOT003;SolventCorp;Room A-102;false;Bob Johnson;01.02.2024;2L
+Sulfuric Acid;7664-93-9;LOT004;AcidCorp;Room B-202;true;Alice Brown;10.02.2024;500ml
+Acetone;67-64-1;LOT005;SolventPro;Room C-301;false;Charlie Wilson;15.02.2024;1L`;
 
-      downloadCSV(csvContent, 'chemical_template.csv');
-      showStatus('CSV template downloaded successfully!', 'success');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+
+      if (link.download !== undefined) {
+          const url = URL.createObjectURL(blob);
+          link.setAttribute('href', url);
+          link.setAttribute('download', 'chemical_template.csv');
+          link.style.visibility = 'hidden';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+      }
+
+      showStatus('CSV template downloaded successfully! This template uses semicolons (;) and European date format (DD.MM.YYYY).', 'success');
   }
 </script>
 </body>

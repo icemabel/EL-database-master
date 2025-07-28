@@ -39,4 +39,17 @@ public class HomeController {
             return "db-test";
         }
     }
+
+    // Additional navigation endpoints for better user experience
+    @GetMapping("/dashboard")
+    public String dashboard() {
+        log.info("Dashboard page accessed");
+        return "index"; // You can create a separate dashboard template if needed
+    }
+
+    @GetMapping("/help")
+    public String help() {
+        log.info("Help page accessed");
+        return "help"; // You can create a help template if needed
+    }
 }

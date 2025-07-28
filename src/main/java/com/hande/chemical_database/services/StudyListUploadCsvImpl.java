@@ -2,10 +2,6 @@ package com.hande.chemical_database.services;
 
 import com.hande.chemical_database.entities.StudyList;
 import com.hande.chemical_database.repositories.StudyListRepo;
-import com.opencsv.bean.CsvToBean;
-import com.opencsv.bean.CsvToBeanBuilder;
-import com.opencsv.bean.HeaderColumnNameMappingStrategy;
-import com.opencsv.exceptions.CsvException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -14,10 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.Reader;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,7 +26,7 @@ public class StudyListUploadCsvImpl implements StudyListUploadCsv {
 
         Set<StudyList> studyListsSet;
         try {
-            studyListsSet = parseCsv(file);
+            studyListsSet = parseCsvWithDelimiterDetection(file);
         } catch (IOException e) {
             log.error("Error reading CSV file: {}", file.getOriginalFilename(), e);
             throw new RuntimeException("Error reading CSV file: " + e.getMessage(), e);
@@ -43,7 +36,7 @@ public class StudyListUploadCsvImpl implements StudyListUploadCsv {
         }
 
         if (studyListsSet.isEmpty()) {
-            throw new IllegalArgumentException("No valid study records found in CSV file");
+            throw new IllegalArgumentException("No valid study records found in CSV file. Check that your file has the correct columns: Study Code, Document codes protocol & report, Material type, Study Level, Risk Level, Info, Number of Samples / Sample ID, Object of study, Responsible Person, Status");
         }
 
         // Check for existing studies and filter them out
@@ -82,132 +75,213 @@ public class StudyListUploadCsvImpl implements StudyListUploadCsv {
         }
     }
 
-    private Set<StudyList> parseCsv(MultipartFile file) throws IOException {
-        try (Reader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
-            HeaderColumnNameMappingStrategy<StudyListCsvRecord> strategy = new HeaderColumnNameMappingStrategy<>();
-            strategy.setType(StudyListCsvRecord.class);
+    private Set<StudyList> parseCsvWithDelimiterDetection(MultipartFile file) throws IOException {
+        Set<StudyList> studies = new HashSet<>();
 
-            CsvToBean<StudyListCsvRecord> csvToBean = new CsvToBeanBuilder<StudyListCsvRecord>(reader)
-                    .withMappingStrategy(strategy)
-                    .withIgnoreEmptyLine(true)
-                    .withIgnoreLeadingWhiteSpace(true)
-                    .withThrowExceptions(false)
-                    .build();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), "UTF-8"))) {
+            String line;
+            boolean isFirstLine = true;
+            String[] headers = null;
+            char delimiter = ';'; // Default to semicolon for European Excel
 
-            List<StudyListCsvRecord> csvRecords = csvToBean.parse();
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty()) {
+                    continue;
+                }
 
-            // Check for parsing exceptions
-            List<CsvException> capturedExceptions = csvToBean.getCapturedExceptions();
-            if (!capturedExceptions.isEmpty()) {
-                log.warn("Found {} parsing errors in CSV file", capturedExceptions.size());
-                for (CsvException exception : capturedExceptions) {
-                    log.warn("CSV parsing error at line {}: {}", exception.getLineNumber(), exception.getMessage());
+                if (isFirstLine) {
+                    // Detect delimiter from first line
+                    delimiter = detectDelimiter(line);
+                    headers = parseCSVLine(line, delimiter);
+                    isFirstLine = false;
+                    log.info("CSV: Headers detected: {}", Arrays.toString(headers));
+                    log.info("CSV: Using delimiter: '{}'", delimiter);
+                    continue;
+                }
+
+                if (headers == null) {
+                    continue;
+                }
+
+                // Parse CSV line with detected delimiter
+                String[] values = parseCSVLine(line, delimiter);
+
+                if (values.length == 0) {
+                    continue;
+                }
+
+                // Create study object from CSV row
+                StudyList study = createStudyFromCSVRow(headers, values);
+                if (study != null) {
+                    studies.add(study);
+                }
+            }
+        }
+
+        log.info("CSV: Processed {} studies from file", studies.size());
+        return studies;
+    }
+
+    private char detectDelimiter(String line) {
+        // Remove any carriage returns and newlines for analysis
+        line = line.replaceAll("[\\r\\n]", "");
+
+        int commaCount = 0;
+        int semicolonCount = 0;
+        boolean inQuotes = false;
+
+        for (char c : line.toCharArray()) {
+            if (c == '"') {
+                inQuotes = !inQuotes;
+            } else if (!inQuotes) {
+                if (c == ',') {
+                    commaCount++;
+                } else if (c == ';') {
+                    semicolonCount++;
+                }
+            }
+        }
+
+        log.info("CSV: Delimiter detection - Commas: {}, Semicolons: {}", commaCount, semicolonCount);
+
+        // If we have semicolons, use semicolons (even if there are also commas)
+        // This handles European CSV format preference
+        if (semicolonCount > 0) {
+            return ';';
+        } else if (commaCount > 0) {
+            return ',';
+        } else {
+            // Default to semicolon for European format
+            return ';';
+        }
+    }
+
+    private StudyList createStudyFromCSVRow(String[] headers, String[] values) {
+        try {
+            StudyList.StudyListBuilder builder = StudyList.builder();
+
+            // Ensure we have enough values, pad with empty strings if necessary
+            String[] paddedValues = new String[headers.length];
+            for (int i = 0; i < headers.length; i++) {
+                if (i < values.length) {
+                    paddedValues[i] = values[i];
+                } else {
+                    paddedValues[i] = ""; // Fill missing values with empty string
                 }
             }
 
-            // Filter duplicates and validate records
-            Set<String> seenStudyCodes = new HashSet<>();
-            return csvRecords.stream()
-                    .filter(this::validateCsvRecord)
-                    .map(this::convertCsvRecordToStudyList)
-                    .filter(study -> study != null && seenStudyCodes.add(study.getStudyCode()))
-                    .collect(Collectors.toSet());
-        }
-    }
+            for (int i = 0; i < headers.length; i++) {
+                String header = cleanHeader(headers[i]);
+                String value = cleanValue(paddedValues[i]);
 
-    private boolean validateCsvRecord(StudyListCsvRecord record) {
-        if (record == null) {
-            log.warn("Null CSV record found, skipping");
-            return false;
-        }
+                // Map Excel column names exactly as they appear
+                switch (header) {
+                    case "study code":
+                        builder.studyCode(value);
+                        break;
+                    case "document codes protocol & report":
+                        builder.documentCodes(value);
+                        break;
+                    case "material type":
+                        builder.materialType(value);
+                        break;
+                    case "study level":
+                        builder.studyLevel(value);
+                        break;
+                    case "risk level":
+                        builder.riskLevel(value);
+                        break;
+                    case "info":
+                        builder.info(value);
+                        break;
+                    case "number of samples / sample id":
+                    case "number of samples":
+                    case "sample id":
+                        builder.numberOfSamples(value);
+                        break;
+                    case "object of study":
+                        builder.objectOfStudy(value);
+                        break;
+                    case "responsible person":
+                        builder.responsiblePerson(value);
+                        break;
+                    case "status":
+                        builder.status(value);
+                        break;
+                    default:
+                        log.debug("CSV: Unmapped column: '{}' with value: '{}'", header, value);
+                }
+            }
 
-        if (record.getStudyCode() == null || record.getStudyCode().trim().isEmpty()) {
-            log.warn("CSV record missing required 'studyCode' field, skipping");
-            return false;
-        }
+            StudyList study = builder.build();
 
-        return true;
-    }
+            // Validate required fields
+            if (study.getStudyCode() == null || study.getStudyCode().trim().isEmpty()) {
+                log.warn("CSV: Skipping row with missing study code");
+                return null;
+            }
 
-    private StudyList convertCsvRecordToStudyList(StudyListCsvRecord csvRecord) {
-        try {
-            return StudyList.builder()
-                    .studyCode(csvRecord.getStudyCode().trim())
-                    .documentCodes(trimOrNull(csvRecord.getDocumentCodes()))
-                    .materialType(trimOrNull(csvRecord.getMaterialType()))
-                    .studyLevel(trimOrNull(csvRecord.getStudyLevel()))
-                    .riskLevel(trimOrNull(csvRecord.getRiskLevel()))
-                    .info(trimOrNull(csvRecord.getInfo()))
-                    .numberOfSamples(trimOrNull(csvRecord.getNumberOfSamples()))
-                    .objectOfStudy(trimOrNull(csvRecord.getObjectOfStudy()))
-                    .responsiblePerson(trimOrNull(csvRecord.getResponsiblePerson()))
-                    .status(trimOrNull(csvRecord.getStatus()))
-                    .build();
+            log.debug("CSV: Created study: {}", study.getStudyCode());
+            return study;
 
         } catch (Exception e) {
-            log.error("Error converting CSV record to StudyList: {}", csvRecord, e);
+            log.error("CSV: Error creating study from row: {}", Arrays.toString(values), e);
             return null;
         }
     }
 
-    private String trimOrNull(String value) {
-        if (value == null || value.trim().isEmpty()) {
+    private String cleanHeader(String header) {
+        if (header == null) return "";
+        return header.trim().toLowerCase()
+                .replaceAll("\\s+", " ") // Replace multiple spaces with single space
+                .replaceAll("[\\r\\n]", "") // Remove line breaks
+                .trim();
+    }
+
+    private String cleanValue(String value) {
+        if (value == null) return null;
+
+        value = value.trim();
+
+        // Remove quotes if present
+        if (value.startsWith("\"") && value.endsWith("\"") && value.length() > 1) {
+            value = value.substring(1, value.length() - 1);
+            value = value.replace("\"\"", "\""); // Handle escaped quotes
+        }
+
+        // Handle various empty value representations
+        if (value.isEmpty() ||
+                "null".equalsIgnoreCase(value) ||
+                "n/a".equalsIgnoreCase(value) ||
+                "na".equalsIgnoreCase(value) ||
+                "-".equals(value) ||
+                "#N/A".equals(value) ||
+                "NULL".equals(value)) {
             return null;
         }
+
         return value.trim();
     }
 
-    // Inner class for CSV mapping
-    public static class StudyListCsvRecord {
-        private String studyCode;
-        private String documentCodes;
-        private String materialType;
-        private String studyLevel;
-        private String riskLevel;
-        private String info;
-        private String numberOfSamples;
-        private String objectOfStudy;
-        private String responsiblePerson;
-        private String status;
+    private String[] parseCSVLine(String line, char delimiter) {
+        List<String> result = new ArrayList<>();
+        boolean inQuotes = false;
+        StringBuilder current = new StringBuilder();
 
-        // Getters and setters
-        public String getStudyCode() { return studyCode; }
-        public void setStudyCode(String studyCode) { this.studyCode = studyCode; }
-
-        public String getDocumentCodes() { return documentCodes; }
-        public void setDocumentCodes(String documentCodes) { this.documentCodes = documentCodes; }
-
-        public String getMaterialType() { return materialType; }
-        public void setMaterialType(String materialType) { this.materialType = materialType; }
-
-        public String getStudyLevel() { return studyLevel; }
-        public void setStudyLevel(String studyLevel) { this.studyLevel = studyLevel; }
-
-        public String getRiskLevel() { return riskLevel; }
-        public void setRiskLevel(String riskLevel) { this.riskLevel = riskLevel; }
-
-        public String getInfo() { return info; }
-        public void setInfo(String info) { this.info = info; }
-
-        public String getNumberOfSamples() { return numberOfSamples; }
-        public void setNumberOfSamples(String numberOfSamples) { this.numberOfSamples = numberOfSamples; }
-
-        public String getObjectOfStudy() { return objectOfStudy; }
-        public void setObjectOfStudy(String objectOfStudy) { this.objectOfStudy = objectOfStudy; }
-
-        public String getResponsiblePerson() { return responsiblePerson; }
-        public void setResponsiblePerson(String responsiblePerson) { this.responsiblePerson = responsiblePerson; }
-
-        public String getStatus() { return status; }
-        public void setStatus(String status) { this.status = status; }
-
-        @Override
-        public String toString() {
-            return "StudyListCsvRecord{" +
-                    "studyCode='" + studyCode + '\'' +
-                    ", materialType='" + materialType + '\'' +
-                    ", status='" + status + '\'' +
-                    '}';
+        for (char c : line.toCharArray()) {
+            if (c == '"') {
+                inQuotes = !inQuotes;
+                current.append(c);
+            } else if (c == delimiter && !inQuotes) {
+                result.add(current.toString().trim());
+                current = new StringBuilder();
+            } else {
+                current.append(c);
+            }
         }
+        result.add(current.toString().trim());
+
+        return result.toArray(new String[0]);
     }
 }

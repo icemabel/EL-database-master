@@ -3,277 +3,215 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Study List Management System</title>
+  <title>Chemical & Study Database - Home</title>
   <style>
     body {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         margin: 0;
-        padding: 0;
+        padding: 20px;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
     }
     .container {
+        max-width: 1000px;
+        margin: 0 auto;
         background: white;
-        border-radius: 20px;
+        border-radius: 15px;
         box-shadow: 0 20px 40px rgba(0,0,0,0.1);
         overflow: hidden;
-        max-width: 900px;
-        width: 90%;
     }
     .header {
         background: linear-gradient(135deg, #2c3e50, #3498db);
         color: white;
         padding: 40px;
         text-align: center;
-        position: relative;
     }
     .header h1 {
-        margin: 0 0 10px 0;
+        margin: 0;
         font-size: 3em;
         font-weight: 300;
     }
     .header p {
-        margin: 0;
+        margin: 10px 0 0 0;
         font-size: 1.2em;
         opacity: 0.9;
     }
     .content {
         padding: 40px;
     }
-    .features {
+    .info-box {
+        background: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+        text-align: center;
+    }
+    .features-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
         margin-bottom: 40px;
     }
-    .feature {
-        text-align: center;
-        padding: 25px;
+    .feature-card {
         background: #f8f9fa;
-        border-radius: 10px;
-        transition: transform 0.3s;
+        border-radius: 15px;
+        padding: 30px;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transition: transform 0.3s, box-shadow 0.3s;
     }
-    .feature:hover {
+    .feature-card:hover {
         transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
     }
     .feature-icon {
         font-size: 3em;
+        margin-bottom: 20px;
+    }
+    .feature-title {
+        font-size: 1.5em;
+        font-weight: bold;
+        color: #2c3e50;
         margin-bottom: 15px;
     }
-    .feature h3 {
-        margin: 0 0 10px 0;
-        color: #2c3e50;
-    }
-    .feature p {
-        margin: 0;
-        color: #666;
-        font-size: 0.9em;
-    }
-    .actions {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 20px;
-        margin-bottom: 30px;
+    .feature-description {
+        color: #6c757d;
+        margin-bottom: 25px;
+        line-height: 1.6;
     }
     .btn {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
         background: #3498db;
         color: white;
-        padding: 20px 15px;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        cursor: pointer;
         text-decoration: none;
-        border-radius: 10px;
+        display: inline-block;
         font-size: 16px;
-        font-weight: 500;
-        transition: all 0.3s;
-        text-align: center;
-        min-height: 100px;
-        justify-content: center;
+        transition: background 0.3s;
+        margin: 5px;
     }
     .btn:hover {
         background: #2980b9;
-        transform: translateY(-3px);
-        box-shadow: 0 6px 25px rgba(52, 152, 219, 0.3);
         color: white;
         text-decoration: none;
     }
     .btn.primary {
-        background: #e74c3c;
-    }
-    .btn.primary:hover {
-        background: #c0392b;
-        box-shadow: 0 6px 25px rgba(231, 76, 60, 0.3);
+        background: #3498db;
+        font-weight: bold;
     }
     .btn.success {
         background: #27ae60;
     }
     .btn.success:hover {
-        background: #229954;
-        box-shadow: 0 6px 25px rgba(39, 174, 96, 0.3);
+        background: #219a52;
     }
     .btn.warning {
         background: #f39c12;
     }
     .btn.warning:hover {
         background: #e67e22;
-        box-shadow: 0 6px 25px rgba(243, 156, 18, 0.3);
     }
-    .btn-icon {
-        font-size: 2em;
-        margin-bottom: 10px;
-    }
-    .btn-text {
-        font-weight: bold;
-        margin-bottom: 5px;
-    }
-    .btn-desc {
-        font-size: 0.8em;
-        opacity: 0.9;
-    }
-    .info-section {
-        background: #ecf0f1;
+    .quick-actions {
+        background: #f8f9fa;
+        border-radius: 15px;
         padding: 30px;
-        border-radius: 10px;
-        margin-top: 30px;
         text-align: center;
+        margin-top: 30px;
     }
-    .info-section h3 {
+    .quick-actions h3 {
         color: #2c3e50;
-        margin-top: 0;
+        margin-bottom: 20px;
     }
-    .tech-stack {
-        display: flex;
-        justify-content: center;
-        gap: 15px;
-        margin-top: 20px;
-        flex-wrap: wrap;
-    }
-    .tech-badge {
-        background: #3498db;
-        color: white;
-        padding: 8px 15px;
-        border-radius: 20px;
-        font-size: 0.9em;
-        font-weight: 500;
-    }
-    .demo-info {
-        background: #fff3cd;
-        border: 1px solid #ffeaa7;
-        color: #856404;
-        padding: 20px;
+    .system-status {
+        background: #e8f5e8;
+        border: 1px solid #c3e6c3;
+        color: #155724;
+        padding: 15px;
         border-radius: 8px;
         margin-bottom: 20px;
         text-align: center;
-    }
-    .demo-info h4 {
-        margin: 0 0 10px 0;
-        color: #856404;
-    }
-    .demo-info p {
-        margin: 5px 0;
-        font-size: 14px;
     }
   </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
-    <h1>📋 Study List Management</h1>
-    <p>E&L Laboratory Studies Database with QR Code Integration</p>
+    <h1>🧪📋 Chemical & Study Database</h1>
+    <p>Comprehensive Laboratory Management System</p>
   </div>
 
   <div class="content">
-    <!-- Demo Info -->
-    <div class="demo-info">
-      <h4>🔓 Open Access System</h4>
-      <p>This system has no authentication - all features are available to everyone.</p>
-      <p>Perfect for laboratory environments where quick access to study information is essential.</p>
+    <div class="info-box">
+      <h4>🔓 System Status: Authentication Disabled</h4>
+      <p>This is a simplified version with all security disabled for testing database functionality. All features are available without login.</p>
     </div>
 
-    <div class="features">
-      <div class="feature">
-        <div class="feature-icon">📊</div>
-        <h3>Study Management</h3>
-        <p>Complete CRUD operations for study database with advanced filtering and search</p>
+    <div class="system-status">
+      <strong>✅ System Online</strong> - Database connection active, all services operational
+    </div>
+
+    <div class="features-grid">
+      <!-- Chemical Management -->
+      <div class="feature-card">
+        <div class="feature-icon">🧪</div>
+        <div class="feature-title">Chemical Management</div>
+        <div class="feature-description">
+          Manage your chemical inventory with QR code generation, CSV import/export, and detailed tracking of storage locations, toxicity, and responsible persons.
+        </div>
+        <a href="/chemicals-with-qr" class="btn primary">View Chemicals</a>
+        <a href="/chemical-csv-import-export" class="btn">CSV Import/Export</a>
       </div>
 
-      <div class="feature">
-        <div class="feature-icon">📱</div>
-        <h3>QR Code Integration</h3>
-        <p>Auto-generated QR codes for each study with web-based scanner</p>
-      </div>
-
-      <div class="feature">
-        <div class="feature-icon">🔍</div>
-        <h3>Advanced Search</h3>
-        <p>Search by study code, material type, responsible person, and status</p>
-      </div>
-
-      <div class="feature">
+      <!-- Study List Management -->
+      <div class="feature-card">
         <div class="feature-icon">📋</div>
-        <h3>CSV Import/Export</h3>
-        <p>Bulk import studies from Excel/CSV files with validation and export functionality</p>
+        <div class="feature-title">Study List Management</div>
+        <div class="feature-description">
+          Track research studies, protocols, samples, and documentation with comprehensive study lifecycle management and QR code integration.
+        </div>
+        <a href="/studies-with-qr" class="btn primary">View Studies</a>
+        <a href="/csv-import-export" class="btn">CSV Import/Export</a>
+      </div>
+
+      <!-- QR Code Scanner -->
+      <div class="feature-card">
+        <div class="feature-icon">📱</div>
+        <div class="feature-title">QR Code Scanner</div>
+        <div class="feature-description">
+          Quickly access chemical or study information by scanning QR codes. Perfect for mobile access in the laboratory environment.
+        </div>
+        <a href="/scanner" class="btn primary">Open Scanner</a>
+      </div>
+
+      <!-- System Administration -->
+      <div class="feature-card">
+        <div class="feature-icon">⚙️</div>
+        <div class="feature-title">System Testing</div>
+        <div class="feature-description">
+          Test database connectivity, verify system functionality, and check the health of all application components.
+        </div>
+        <a href="/test-db" class="btn success">Test Database</a>
       </div>
     </div>
 
-    <div class="actions">
-      <a href="/scanner" class="btn primary">
-        <div class="btn-icon">📱</div>
-        <div class="btn-text">QR Scanner</div>
-        <div class="btn-desc">Scan study QR codes</div>
-      </a>
-
-      <a href="/studies-with-qr" class="btn success">
-        <div class="btn-icon">📋</div>
-        <div class="btn-text">View Studies</div>
-        <div class="btn-desc">Browse study database</div>
-      </a>
-
-      <a href="/csv-import-export" class="btn warning">
-        <div class="btn-icon">📊</div>
-        <div class="btn-text">CSV Import/Export</div>
-        <div class="btn-desc">Bulk manage studies</div>
-      </a>
-
-      <a href="/test-db" class="btn">
-        <div class="btn-icon">🔍</div>
-        <div class="btn-text">Test Database</div>
-        <div class="btn-desc">Check system status</div>
-      </a>
+    <div class="quick-actions">
+      <h3>🚀 Quick Actions</h3>
+      <a href="/chemicals-with-qr" class="btn">All Chemicals</a>
+      <a href="/studies-with-qr" class="btn">All Studies</a>
+      <a href="/scanner" class="btn warning">QR Scanner</a>
+      <a href="/chemical-csv-import-export" class="btn">Chemical CSV</a>
+      <a href="/csv-import-export" class="btn">Study CSV</a>
+      <a href="/test-db" class="btn success">System Test</a>
     </div>
 
-    <div class="info-section">
-      <h3>🛠️ Technology Stack</h3>
-      <p>Built with modern technologies for reliability and performance</p>
-      <div class="tech-stack">
-        <span class="tech-badge">Spring Boot 3.4.2</span>
-        <span class="tech-badge">H2 Database</span>
-        <span class="tech-badge">ZXing QR Codes</span>
-        <span class="tech-badge">Thymeleaf</span>
-        <span class="tech-badge">MapStruct</span>
-        <span class="tech-badge">OpenCSV</span>
-        <span class="tech-badge">Bootstrap CSS</span>
-      </div>
-    </div>
-
-    <div class="info-section">
-      <h3>📋 Study Information Fields</h3>
-      <p>Each study contains the following information:</p>
-      <ul style="text-align: left; max-width: 600px; margin: 20px auto;">
-        <li><strong>Study Code:</strong> Unique identifier (e.g., CMQ_STD_001)</li>
-        <li><strong>Document Codes:</strong> Protocol and report references</li>
-        <li><strong>Material Type:</strong> Type of material being studied</li>
-        <li><strong>Study Level:</strong> Classification level (A, B, C)</li>
-        <li><strong>Risk Level:</strong> Safety risk assessment (Low, Medium, High)</li>
-        <li><strong>Number of Samples:</strong> Sample count and identifiers</li>
-        <li><strong>Object of Study:</strong> What is being analyzed</li>
-        <li><strong>Responsible Person:</strong> Study coordinator</li>
-        <li><strong>Status:</strong> Current study status</li>
-      </ul>
+    <div style="text-align: center; margin-top: 40px; color: #6c757d;">
+      <p><strong>Chemical & Study Database v1.0</strong><br>
+        Laboratory Information Management System<br>
+        Simplified Mode - No Authentication Required</p>
     </div>
   </div>
 </div>

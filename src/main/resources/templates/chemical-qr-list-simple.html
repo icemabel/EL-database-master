@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chemical Database (Simple)</title>
+    <title>CSV Import/Export - Chemical Database</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -13,7 +13,7 @@
             min-height: 100vh;
         }
         .container {
-            max-width: 1200px;
+            max-width: 800px;
             margin: 0 auto;
             background: white;
             border-radius: 15px;
@@ -34,22 +34,36 @@
         .content {
             padding: 40px;
         }
-        .info-box {
-            background: #d1ecf1;
-            border: 1px solid #bee5eb;
-            color: #0c5460;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 30px;
             margin-bottom: 30px;
-            flex-wrap: wrap;
-            gap: 15px;
+        }
+        .section h2 {
+            color: #2c3e50;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        .upload-area {
+            border: 2px dashed #3498db;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            background: white;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .upload-area:hover {
+            border-color: #2980b9;
+            background: #f8f9fa;
+        }
+        .upload-area.dragover {
+            border-color: #27ae60;
+            background: #d5f4e6;
+        }
+        .file-input {
+            display: none;
         }
         .btn {
             background: #3498db;
@@ -62,11 +76,16 @@
             display: inline-block;
             font-size: 16px;
             transition: background 0.3s;
+            margin: 5px;
         }
         .btn:hover {
             background: #2980b9;
             color: white;
             text-decoration: none;
+        }
+        .btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
         }
         .btn.success {
             background: #27ae60;
@@ -74,86 +93,25 @@
         .btn.success:hover {
             background: #219a52;
         }
-        .search-box {
-            flex: 1;
-            max-width: 400px;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 16px;
+        .btn.warning {
+            background: #f39c12;
         }
-        .chemicals-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 20px;
+        .btn.warning:hover {
+            background: #e67e22;
         }
-        .chemical-card {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-        .chemical-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-        }
-        .chemical-name {
-            font-size: 1.3em;
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 15px;
-        }
-        .chemical-info {
-            margin-bottom: 15px;
-        }
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 0.9em;
-        }
-        .info-label {
-            font-weight: bold;
-            color: #555;
-        }
-        .info-value {
-            color: #2c3e50;
-            text-align: right;
-            max-width: 60%;
-            word-wrap: break-word;
-        }
-        .toxic-badge {
+        .btn.danger {
             background: #e74c3c;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.8em;
-            font-weight: bold;
         }
-        .safe-badge {
-            background: #27ae60;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.8em;
-            font-weight: bold;
-        }
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #6c757d;
-        }
-        .empty-value {
-            color: #999;
-            font-style: italic;
+        .btn.danger:hover {
+            background: #c0392b;
         }
         .status-message {
             padding: 15px;
             border-radius: 8px;
-            margin-bottom: 20px;
+            margin: 20px 0;
             text-align: center;
             font-weight: bold;
+            display: none;
         }
         .status-success {
             background: #d4edda;
@@ -165,13 +123,88 @@
             color: #721c24;
             border: 1px solid #f1b0b7;
         }
+        .status-info {
+            background: #cce7ff;
+            color: #004085;
+            border: 1px solid #99d3ff;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+            display: none;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2980b9);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        .file-info {
+            margin: 20px 0;
+            padding: 15px;
+            background: #ecf0f1;
+            border-radius: 8px;
+            display: none;
+        }
+        .csv-template {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .template-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 12px;
+        }
+        .template-table th,
+        .template-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .template-table th {
+            background: #f1c40f;
+            color: white;
+            font-weight: bold;
+        }
+        .back-button {
+            display: inline-block;
+            background: #6c757d;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+        .back-button:hover {
+            background: #5a6268;
+            color: white;
+            text-decoration: none;
+        }
+        .info-box {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
-        <h1>🧪 Chemical Database (Simple Mode)</h1>
-        <p>No authentication required - direct database access</p>
+        <h1>🧪 Chemical CSV Import/Export</h1>
+        <p>Bulk manage chemicals with CSV files</p>
     </div>
 
     <div class="content">
@@ -180,147 +213,282 @@
             <p>This is a simplified version with all security disabled for testing database functionality.</p>
         </div>
 
-        <div class="controls">
-            <input type="text" id="searchBox" class="search-box" placeholder="Search chemicals by name...">
-            <div>
-                <a href="/scanner" class="btn">📱 QR Scanner</a>
-                <a href="/csv-import-export" class="btn">📊 CSV Import/Export</a>
-                <a href="/test-db" class="btn success">🔍 Test Database</a>
+        <!-- CSV Template Section -->
+        <div class="csv-template">
+            <h3>📋 CSV Template Format</h3>
+            <p>Your CSV file should include the following columns:</p>
+            <table class="template-table">
+                <thead>
+                <tr>
+                    <th>name</th>
+                    <th>CASNo</th>
+                    <th>LotNo</th>
+                    <th>producer</th>
+                    <th>storage</th>
+                    <th>toxicState</th>
+                    <th>responsible</th>
+                    <th>orderDate</th>
+                    <th>weight</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>Sodium Chloride</td>
+                    <td>7647-14-5</td>
+                    <td>LOT001</td>
+                    <td>ChemCorp</td>
+                    <td>Room A-101</td>
+                    <td>false</td>
+                    <td>John Doe</td>
+                    <td>2024-01-15</td>
+                    <td>500g</td>
+                </tr>
+                </tbody>
+            </table>
+            <p><strong>Important Notes:</strong></p>
+            <ul>
+                <li><strong>name</strong> and <strong>storage</strong> fields are required</li>
+                <li><strong>toxicState</strong> should be "true" or "false" (or leave empty)</li>
+                <li><strong>orderDate</strong> format: YYYY-MM-DD (or leave empty)</li>
+                <li>The file supports both comma (,) and semicolon (;) separators</li>
+                <li>Existing chemicals with the same name will be skipped</li>
+            </ul>
+            <div style="text-align: center; margin-top: 15px;">
+                <button class="btn" onclick="downloadTemplate()">📥 Download CSV Template</button>
             </div>
         </div>
 
-        <div id="statusMessage" style="display: none;"></div>
-
-        <div id="loadingMessage" class="loading">
-            Loading chemicals from database...
+        <!-- Export Section -->
+        <div class="section">
+            <h2>📤 Export Chemicals</h2>
+            <p>Download all chemicals as a CSV file for backup or external processing.</p>
+            <div style="text-align: center;">
+                <button class="btn success" onclick="exportChemicals()">📥 Download CSV</button>
+            </div>
         </div>
 
-        <div id="chemicalsContainer" class="chemicals-grid" style="display: none;">
-            <!-- Chemicals will be loaded here via JavaScript -->
+        <!-- Import Section -->
+        <div class="section">
+            <h2>📤 Import Chemicals</h2>
+            <p>Upload a CSV file to add new chemicals to the database.</p>
+
+            <div class="upload-area" onclick="document.getElementById('csvFile').click()">
+                <div id="upload-text">
+                    <h3>📁 Click to select CSV file</h3>
+                    <p>Or drag and drop your CSV file here</p>
+                    <p><small>Maximum file size: 10MB</small></p>
+                </div>
+            </div>
+
+            <input type="file" id="csvFile" class="file-input" accept=".csv" onchange="handleFileSelect(event)">
+
+            <div id="file-info" class="file-info">
+                <p><strong>Selected file:</strong> <span id="file-name"></span></p>
+                <p><strong>Size:</strong> <span id="file-size"></span></p>
+            </div>
+
+            <div class="progress-bar" id="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn" id="upload-btn" onclick="uploadFile()" disabled>📤 Upload CSV</button>
+                <button class="btn danger" id="cancel-btn" onclick="cancelUpload()" style="display: none;">❌ Cancel</button>
+            </div>
+        </div>
+
+        <div id="status-message" class="status-message"></div>
+
+        <div style="text-align: center;">
+            <a href="/chemicals-with-qr" class="back-button">🧪 View All Chemicals</a>
+            <a href="/studies-with-qr" class="back-button">📋 View Studies</a>
+            <a href="/" class="back-button">🏠 Home</a>
         </div>
     </div>
 </div>
 
 <script>
-    let allChemicals = [];
+    let selectedFile = null;
 
-    // Load chemicals when page loads
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('Page loaded, starting to load chemicals...');
-        loadChemicals();
+    // Drag and drop functionality
+    const uploadArea = document.querySelector('.upload-area');
 
-        // Add search functionality
-        document.getElementById('searchBox').addEventListener('input', function(e) {
-            filterChemicals(e.target.value);
-        });
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
     });
 
-    async function loadChemicals() {
-        try {
-            console.log('Making request to /api/chemicals...');
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+    });
 
-            const response = await fetch('/api/chemicals', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
 
-            console.log('Response status:', response.status);
-            console.log('Response ok:', response.ok);
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            const file = files[0];
+            if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+                selectedFile = file;
+                displayFileInfo(file);
+            } else {
+                showStatus('Please select a valid CSV file.', 'error');
             }
+        }
+    });
 
-            allChemicals = await response.json();
-            console.log('Loaded chemicals:', allChemicals.length);
-
-            displayChemicals(allChemicals);
-
-            document.getElementById('loadingMessage').style.display = 'none';
-            document.getElementById('chemicalsContainer').style.display = 'grid';
-
-            showStatus(`Successfully loaded ${allChemicals.length} chemicals`, 'success');
-
-        } catch (error) {
-            console.error('Error loading chemicals:', error);
-            showStatus('Error loading chemicals: ' + error.message, 'error');
-            document.getElementById('loadingMessage').textContent = 'Error loading chemicals: ' + error.message;
+    function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (file) {
+            selectedFile = file;
+            displayFileInfo(file);
         }
     }
 
-    function displayChemicals(chemicals) {
-        const container = document.getElementById('chemicalsContainer');
+    function displayFileInfo(file) {
+        document.getElementById('file-name').textContent = file.name;
+        document.getElementById('file-size').textContent = formatFileSize(file.size);
+        document.getElementById('file-info').style.display = 'block';
+        document.getElementById('upload-btn').disabled = false;
+    }
 
-        if (chemicals.length === 0) {
-            container.innerHTML = '<div class="loading">No chemicals found in database.</div>';
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    async function uploadFile() {
+        if (!selectedFile) {
+            showStatus('Please select a file first.', 'error');
             return;
         }
 
-        container.innerHTML = chemicals.map(chemical => createChemicalCard(chemical)).join('');
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+
+        // Show progress bar
+        document.getElementById('progress-bar').style.display = 'block';
+        document.getElementById('upload-btn').disabled = true;
+        document.getElementById('cancel-btn').style.display = 'inline-block';
+
+        try {
+            showStatus('Uploading and processing CSV file...', 'info');
+
+            // Simulate progress
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += 10;
+                document.getElementById('progress-fill').style.width = progress + '%';
+                if (progress >= 90) {
+                    clearInterval(progressInterval);
+                }
+            }, 200);
+
+            const response = await fetch('/api/chemicals/upload-csv', {
+                method: 'POST',
+                body: formData
+            });
+
+            clearInterval(progressInterval);
+            document.getElementById('progress-fill').style.width = '100%';
+
+            if (response.ok) {
+                const message = await response.text();
+                showStatus(message, 'success');
+                resetUpload();
+            } else {
+                const errorMessage = await response.text();
+                showStatus(`Upload failed: ${errorMessage}`, 'error');
+            }
+
+        } catch (error) {
+            console.error('Upload error:', error);
+            showStatus('Upload failed. Please check your connection and try again.', 'error');
+        } finally {
+            document.getElementById('upload-btn').disabled = false;
+            document.getElementById('cancel-btn').style.display = 'none';
+            setTimeout(() => {
+                document.getElementById('progress-bar').style.display = 'none';
+                document.getElementById('progress-fill').style.width = '0%';
+            }, 2000);
+        }
     }
 
-    function createChemicalCard(chemical) {
-        const toxicBadge = chemical.toxicState === true ?
-            '<span class="toxic-badge">⚠️ TOXIC</span>' :
-            chemical.toxicState === false ?
-            '<span class="safe-badge">✅ SAFE</span>' : '';
-
-        return `
-            <div class="chemical-card">
-                <div class="chemical-name">${chemical.name} ${toxicBadge}</div>
-
-                <div class="chemical-info">
-                    <div class="info-row">
-                        <span class="info-label">ID:</span>
-                        <span class="info-value">${chemical.id}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">CAS No:</span>
-                        <span class="info-value ${!chemical.casNo ? 'empty-value' : ''}">${chemical.casNo || 'Not specified'}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Storage:</span>
-                        <span class="info-value ${!chemical.storage ? 'empty-value' : ''}">${chemical.storage || 'Not specified'}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Responsible:</span>
-                        <span class="info-value ${!chemical.responsible ? 'empty-value' : ''}">${chemical.responsible || 'Not assigned'}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Weight:</span>
-                        <span class="info-value ${!chemical.weight ? 'empty-value' : ''}">${chemical.weight || 'Not specified'}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">QR Code:</span>
-                        <span class="info-value ${!chemical.qrCode ? 'empty-value' : ''}">${chemical.qrCode || 'Not generated'}</span>
-                    </div>
-                </div>
-            </div>
-        `;
+    function cancelUpload() {
+        resetUpload();
+        showStatus('Upload cancelled.', 'info');
     }
 
-    function filterChemicals(searchTerm) {
-        const filtered = allChemicals.filter(chemical =>
-            chemical.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (chemical.casNo && chemical.casNo.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (chemical.storage && chemical.storage.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (chemical.responsible && chemical.responsible.toLowerCase().includes(searchTerm.toLowerCase()))
-        );
+    function resetUpload() {
+        selectedFile = null;
+        document.getElementById('csvFile').value = '';
+        document.getElementById('file-info').style.display = 'none';
+        document.getElementById('upload-btn').disabled = true;
+        document.getElementById('cancel-btn').style.display = 'none';
+        document.getElementById('progress-bar').style.display = 'none';
+        document.getElementById('progress-fill').style.width = '0%';
+    }
 
-        displayChemicals(filtered);
+    async function exportChemicals() {
+        try {
+            showStatus('Preparing CSV export...', 'info');
+
+            // Trigger download by navigating to the export endpoint
+            window.location.href = '/api/chemicals/export-csv';
+
+            showStatus('Export initiated! Check your downloads.', 'success');
+
+        } catch (error) {
+            console.error('Export error:', error);
+            showStatus('Export failed. Please try again.', 'error');
+        }
     }
 
     function showStatus(message, type) {
-        const statusDiv = document.getElementById('statusMessage');
+        const statusDiv = document.getElementById('status-message');
         statusDiv.textContent = message;
         statusDiv.className = `status-message status-${type}`;
         statusDiv.style.display = 'block';
 
-        setTimeout(() => {
-            statusDiv.style.display = 'none';
-        }, 5000);
+        if (type === 'info') {
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+        } else {
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 8000);
+        }
+    }
+
+    function downloadTemplate() {
+        // Use semicolons to match European Excel format
+        const csvContent = `name;CASNo;LotNo;producer;storage;toxicState;responsible;orderDate;weight
+Sodium Chloride;7647-14-5;LOT001;ChemCorp;Room A-101;false;John Doe;2024-01-15;500g
+Hydrochloric Acid;7647-01-0;LOT002;AcidCorp;Room B-201;true;Jane Smith;2024-01-20;1L
+Ethanol;64-17-5;LOT003;SolventCorp;Room A-102;false;Bob Johnson;2024-02-01;2L
+Sulfuric Acid;7664-93-9;LOT004;AcidCorp;Room B-202;true;Alice Brown;2024-02-10;500ml
+Acetone;67-64-1;LOT005;SolventPro;Room C-301;false;Charlie Wilson;2024-02-15;1L`;
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'chemical_template.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        showStatus('CSV template downloaded successfully! This template uses semicolons (;) which work better with European Excel versions.', 'success');
     }
 </script>
 </body>
