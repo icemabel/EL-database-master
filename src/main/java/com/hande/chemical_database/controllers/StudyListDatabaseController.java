@@ -14,6 +14,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -43,6 +44,7 @@ public class StudyListDatabaseController {
     private final StudyListQRCodeService qrCodeService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<List<StudyListDTO>> getAllStudyLists() {
         try {
@@ -57,6 +59,7 @@ public class StudyListDatabaseController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<StudyListDTO> getStudyListById(@PathVariable Long id) {
         try {
@@ -71,6 +74,7 @@ public class StudyListDatabaseController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<StudyListDTO> createStudyList(@Valid @RequestBody StudyListDTO studyListDTO) {
         try {
@@ -85,6 +89,7 @@ public class StudyListDatabaseController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<StudyListDTO> updateStudyList(@PathVariable Long id, @Valid @RequestBody StudyListDTO studyListDTO) {
         try {
@@ -100,6 +105,7 @@ public class StudyListDatabaseController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     @ResponseBody
     public ResponseEntity<Void> deleteStudyList(@PathVariable Long id) {
         try {
@@ -118,6 +124,7 @@ public class StudyListDatabaseController {
 
     // QR Code endpoints
     @PostMapping("/{id}/generate-qr")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<String> generateQRCode(@PathVariable Long id) {
         try {
@@ -132,6 +139,7 @@ public class StudyListDatabaseController {
     }
 
     @GetMapping("/{id}/qr-image")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<byte[]> getQRCodeImage(@PathVariable Long id) {
         try {
@@ -150,6 +158,7 @@ public class StudyListDatabaseController {
     }
 
     @PostMapping("/{id}/regenerate-qr")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<String> regenerateQRCode(@PathVariable Long id) {
         try {
@@ -165,6 +174,7 @@ public class StudyListDatabaseController {
 
     // CSV endpoints
     @PostMapping("/upload-csv")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<String> uploadStudyListsFromCsv(@RequestParam("file") MultipartFile file) {
         try {
@@ -191,6 +201,7 @@ public class StudyListDatabaseController {
     }
 
     @GetMapping("/export-csv")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public void exportStudyListsToCSV(HttpServletResponse response) throws IOException {
         try {
             log.info("Database: Exporting studies to CSV");
@@ -235,6 +246,7 @@ public class StudyListDatabaseController {
 
     // Search endpoints
     @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<List<StudyListDTO>> searchStudyListsByCode(@RequestParam String studyCode) {
         try {
@@ -260,6 +272,7 @@ public class StudyListDatabaseController {
     }
 
     @DeleteMapping("/by-code/{studyCode}")
+    @PreAuthorize("hasRole('ADMIN')")
     @ResponseBody
     public ResponseEntity<Void> deleteStudyListByCode(@PathVariable String studyCode) {
         try {

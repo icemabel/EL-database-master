@@ -1,6 +1,7 @@
 package com.hande.chemical_database.controllers;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -29,6 +30,7 @@ public class StudyListQRController {
 
     // Web endpoint for QR code scanning (shows study info)
     @GetMapping("/study-qr/{qrCodeId}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public String showStudyInfo(@PathVariable String qrCodeId, Model model) {
         try {
             log.info("QR scan request for study QR code ID: {}", qrCodeId);

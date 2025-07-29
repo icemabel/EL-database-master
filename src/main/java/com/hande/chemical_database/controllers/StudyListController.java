@@ -2,6 +2,7 @@ package com.hande.chemical_database.controllers;
 
 import com.hande.chemical_database.entities.StudyList;
 import com.hande.chemical_database.models.StudyListDTO;
+import com.hande.chemical_database.models.UserPrincipal;
 import com.hande.chemical_database.services.StudyListService;
 import com.hande.chemical_database.services.StudyListUploadCsv;
 import com.hande.chemical_database.services.StudyListQRCodeService;
@@ -14,6 +15,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -44,6 +48,7 @@ public class StudyListController {
 
     // ===== READ OPERATIONS =====
     @GetMapping
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<List<StudyListDTO>> getAllStudyLists() {
         try {
@@ -58,6 +63,7 @@ public class StudyListController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<StudyListDTO> getStudyListById(@PathVariable Long id) {
         try {
@@ -72,6 +78,7 @@ public class StudyListController {
     }
 
     @GetMapping("/count")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> getStudyCount() {
         try {
@@ -96,6 +103,7 @@ public class StudyListController {
 
     // ===== CREATE OPERATIONS =====
     @PostMapping
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<StudyListDTO> createStudyList(@Valid @RequestBody StudyListDTO studyListDTO) {
         try {
@@ -110,6 +118,7 @@ public class StudyListController {
 
     // ===== UPDATE OPERATIONS =====
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<StudyListDTO> updateStudyList(@PathVariable Long id, @Valid @RequestBody StudyListDTO studyListDTO) {
         try {
@@ -126,6 +135,7 @@ public class StudyListController {
 
     // ===== DELETE OPERATIONS =====
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     @ResponseBody
     public ResponseEntity<String> deleteStudyList(@PathVariable Long id) {
         try {
@@ -144,6 +154,7 @@ public class StudyListController {
     }
 
     @DeleteMapping("/by-code/{studyCode}")
+    @PreAuthorize("hasRole('ADMIN')")
     @ResponseBody
     public ResponseEntity<String> deleteStudyListByCode(@PathVariable String studyCode) {
         try {
@@ -162,6 +173,7 @@ public class StudyListController {
     }
 
     @DeleteMapping("/clear-all")
+    @PreAuthorize("hasRole('ADMIN')")
     @ResponseBody
     public ResponseEntity<String> clearAllStudyLists() {
         try {
@@ -187,6 +199,7 @@ public class StudyListController {
 
     // ===== CSV IMPORT/EXPORT =====
     @PostMapping("/import-csv")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<String> importCsv(@RequestParam("file") MultipartFile file) {
         try {
@@ -207,6 +220,7 @@ public class StudyListController {
     }
 
     @PostMapping("/upload-csv")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<String> uploadStudyListsFromCsv(@RequestParam("file") MultipartFile file) {
         try {
@@ -231,6 +245,7 @@ public class StudyListController {
     }
 
     @GetMapping("/export-csv")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public void exportCsv(HttpServletResponse response) {
         try {
             log.info("Exporting studies to CSV");
@@ -279,6 +294,7 @@ public class StudyListController {
 
     // ===== QR CODE OPERATIONS =====
     @PostMapping("/{id}/generate-qr")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<StudyListDTO> generateQRCode(@PathVariable Long id) {
         try {
@@ -292,6 +308,7 @@ public class StudyListController {
     }
 
     @GetMapping("/{id}/qr-image")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<byte[]> getQRCodeImage(@PathVariable Long id) {
         try {
             log.info("Getting QR code image for study ID: {}", id);
@@ -311,6 +328,7 @@ public class StudyListController {
     }
 
     @GetMapping("/qr/{qrCode}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<StudyListDTO> getStudyByQRCode(@PathVariable String qrCode) {
         try {
@@ -330,6 +348,7 @@ public class StudyListController {
 
     // ===== SEARCH/FILTER OPERATIONS =====
     @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<Page<StudyList>> searchStudies(
             @RequestParam(defaultValue = "") String filter,
@@ -352,6 +371,7 @@ public class StudyListController {
 
     // ===== TEST ENDPOINT =====
     @GetMapping("/test")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> test() {
         Map<String, Object> response = new HashMap<>();
@@ -371,6 +391,31 @@ public class StudyListController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/permissions")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getCurrentUserPermissions() {
+        Map<String, Object> permissions = new HashMap<>();
+
+        String currentUser = getCurrentUsername();
+        String userRole = getCurrentUserRole();
+        boolean isAdmin = isCurrentUserAdmin();
+
+        permissions.put("username", currentUser);
+        permissions.put("role", userRole);
+        permissions.put("isAdmin", isAdmin);
+        permissions.put("permissions", Map.of(
+                "read", true,
+                "create", true,
+                "update", true,
+                "delete", isAdmin,
+                "import", true,
+                "export", true
+        ));
+
+        return ResponseEntity.ok(permissions);
+    }
+
     // ===== HELPER METHODS =====
     private String escapeCSV(String value) {
         if (value == null) {
@@ -380,5 +425,29 @@ public class StudyListController {
             value = value.replace("\"", "\"\"");
         }
         return value;
+    }
+
+    private String getCurrentUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserPrincipal userPrincipal) {
+            return userPrincipal.getUsername();
+        }
+        return "anonymous";
+    }
+
+    private String getCurrentUserRole() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserPrincipal userPrincipal) {
+            return userPrincipal.getSimpleRoleName();
+        }
+        return "unknown";
+    }
+
+    private boolean isCurrentUserAdmin() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserPrincipal userPrincipal) {
+            return userPrincipal.isAdmin();
+        }
+        return false;
     }
 }

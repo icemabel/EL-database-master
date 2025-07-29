@@ -4,6 +4,7 @@ import com.hande.chemical_database.entities.Chemicals;
 import com.hande.chemical_database.services.QRCodeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +18,7 @@ public class QRCodeController {
 
     // Web endpoint for QR code scanning (shows chemical info)
     @GetMapping("/qr/{qrCodeId}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public String showChemicalInfo(@PathVariable String qrCodeId, Model model) {
         try {
             Chemicals chemical = qrCodeService.getChemicalByQRCode(qrCodeId);

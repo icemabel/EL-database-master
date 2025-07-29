@@ -2,6 +2,7 @@ package com.hande.chemical_database.controllers;
 
 import com.hande.chemical_database.entities.Chemicals;
 import com.hande.chemical_database.models.ChemicalDTO;
+import com.hande.chemical_database.models.UserPrincipal;
 import com.hande.chemical_database.services.ChemicalService;
 import com.hande.chemical_database.services.ChemicalsFiltering;
 import com.hande.chemical_database.services.ChemicalsUploadCsv;
@@ -16,6 +17,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -41,6 +45,7 @@ public class ChemicalController {
     private final QRCodeService qrCodeService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<List<ChemicalDTO>> getAllChemicals() {
         try {
@@ -55,6 +60,7 @@ public class ChemicalController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<ChemicalDTO> getChemicalById(@PathVariable Long id) {
         try {
@@ -71,6 +77,7 @@ public class ChemicalController {
     // Add this method to your ChemicalController.java class:
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<ChemicalDTO> updateChemical(@PathVariable Long id, @Valid @RequestBody ChemicalDTO chemicalDTO) {
         try {
@@ -104,6 +111,7 @@ public class ChemicalController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<ChemicalDTO> createChemical(@Valid @RequestBody ChemicalDTO chemicalDTO) {
         try {
@@ -119,6 +127,7 @@ public class ChemicalController {
 
     // QR Code endpoints (simplified)
     @PostMapping("/{id}/generate-qr")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<String> generateQRCode(@PathVariable Long id) {
         try {
@@ -133,6 +142,7 @@ public class ChemicalController {
     }
 
     @GetMapping("/{id}/qr-image")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<byte[]> getQRCodeImage(@PathVariable Long id) {
         try {
@@ -152,6 +162,7 @@ public class ChemicalController {
 
     // CSV endpoints (simplified)
     @PostMapping("/upload-csv")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<String> uploadChemicalsFromCsv(@RequestParam("file") MultipartFile file) {
         try {
@@ -178,6 +189,7 @@ public class ChemicalController {
     }
 
     @GetMapping("/export-csv")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public void exportChemicalsToCSV(HttpServletResponse response) throws IOException {
         try {
             log.info("Exporting chemicals to CSV");
@@ -222,6 +234,7 @@ public class ChemicalController {
     // Add these methods to your existing ChemicalController.java class
 
     @DeleteMapping("/clear-all")
+    @PreAuthorize("hasRole('ADMIN')")
     @ResponseBody
     public ResponseEntity<String> clearAllChemicals() {
         try {
@@ -247,6 +260,7 @@ public class ChemicalController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     @ResponseBody
     public ResponseEntity<String> deleteChemical(@PathVariable Long id) {
         try {
@@ -268,6 +282,7 @@ public class ChemicalController {
     }
 
     @GetMapping("/count")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> getChemicalCount() {
         try {
@@ -287,6 +302,31 @@ public class ChemicalController {
         }
     }
 
+    @GetMapping("/permissions")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getCurrentUserPermissions() {
+        Map<String, Object> permissions = new HashMap<>();
+
+        String currentUser = getCurrentUsername();
+        String userRole = getCurrentUserRole();
+        boolean isAdmin = isCurrentUserAdmin();
+
+        permissions.put("username", currentUser);
+        permissions.put("role", userRole);
+        permissions.put("isAdmin", isAdmin);
+        permissions.put("permissions", Map.of(
+                "read", true,
+                "create", true,
+                "update", true,
+                "delete", isAdmin,
+                "import", true,
+                "export", true
+        ));
+
+        return ResponseEntity.ok(permissions);
+    }
+
     private String escapeCSV(String value) {
         if (value == null) {
             return "";
@@ -295,5 +335,29 @@ public class ChemicalController {
             value = value.replace("\"", "\"\"");
         }
         return value;
+    }
+
+    private String getCurrentUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserPrincipal userPrincipal) {
+            return userPrincipal.getUsername();
+        }
+        return "anonymous";
+    }
+
+    private String getCurrentUserRole() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserPrincipal userPrincipal) {
+            return userPrincipal.getSimpleRoleName();
+        }
+        return "unknown";
+    }
+
+    private boolean isCurrentUserAdmin() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserPrincipal userPrincipal) {
+            return userPrincipal.isAdmin();
+        }
+        return false;
     }
 }

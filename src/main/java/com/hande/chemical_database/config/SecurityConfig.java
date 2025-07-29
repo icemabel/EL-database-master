@@ -7,6 +7,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
@@ -19,7 +20,14 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true) // Enable @PreAuthorize annotations
 public class SecurityConfig {
+
+    @Autowired
+    private UserDetailsService userDetailsService;
+
+    @Autowired
+    private JwtFilter jwtFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -31,92 +39,74 @@ public class SecurityConfig {
         return http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // ALLOW EVERYTHING - NO SECURITY FOR NOW
-                        .anyRequest().permitAll()
+                        // ============================================
+                        // PUBLIC ENDPOINTS
+                        // ============================================
+                        .requestMatchers("/", "/home", "/login", "/register").permitAll()
+                        .requestMatchers("/css/**", "/js/**", "/images/**", "/static/**").permitAll()
+                        .requestMatchers("/h2-console/**").permitAll()
+
+                        // ============================================
+                        // AUTHENTICATION ENDPOINTS
+                        // ============================================
+                        .requestMatchers("/api/register", "/api/login").permitAll()
+
+                        // ============================================
+                        // READ ACCESS - ALL AUTHENTICATED USERS
+                        // ============================================
+                        .requestMatchers("GET", "/api/chemicals/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("GET", "/api/studies/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("GET", "/api/profile").hasAnyRole("USER", "ADMIN")
+
+                        // ============================================
+                        // CREATE/UPDATE ACCESS - ALL AUTHENTICATED USERS
+                        // ============================================
+                        .requestMatchers("POST", "/api/chemicals/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("PUT", "/api/chemicals/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("POST", "/api/studies/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("PUT", "/api/studies/**").hasAnyRole("USER", "ADMIN")
+
+                        // ============================================
+                        // DELETE ACCESS - ADMIN ONLY
+                        // ============================================
+                        .requestMatchers("DELETE", "/api/chemicals/**").hasRole("ADMIN")
+                        .requestMatchers("DELETE", "/api/studies/**").hasRole("ADMIN")
+
+                        // ============================================
+                        // ADMIN ONLY ENDPOINTS
+                        // ============================================
+                        .requestMatchers("/admin/**", "/api/admin/**").hasRole("ADMIN")
+
+                        // ============================================
+                        // CSV IMPORT/EXPORT - ALL AUTHENTICATED USERS
+                        // ============================================
+                        .requestMatchers("/api/*/import-csv", "/api/*/export-csv").hasAnyRole("USER", "ADMIN")
+
+                        // ============================================
+                        // ALL OTHER ENDPOINTS REQUIRE AUTH
+                        // ============================================
+                        .anyRequest().authenticated()
+                )
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .headers(headers ->
                         headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)
                 )
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
-//    @Autowired
-//    private UserDetailsService userDetailsService;
-//
-//    @Autowired
-//    private JwtFilter jwtFilter;
-//
-//    @Bean
-//    public PasswordEncoder passwordEncoder() {
-//        return new BCryptPasswordEncoder(10);
-//    }
-//
-//    @Bean
-//    public AuthenticationProvider authenticationProvider() {
-//        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
-//        authenticationProvider.setUserDetailsService(userDetailsService);
-//        authenticationProvider.setPasswordEncoder(passwordEncoder());
-//        return authenticationProvider;
-//    }
-//
-//    @Bean
-//    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-//        return http
-//                .csrf(csrf -> csrf.disable())
-//                .authorizeHttpRequests(auth -> auth
-//                        // ============================================
-//                        // PUBLIC ENDPOINTS (No authentication needed)
-//                        // ============================================
-//                        .requestMatchers("/", "/home", "/login", "/register").permitAll()
-//                        .requestMatchers("/login-test", "/auth-test").permitAll() // Debug pages
-//                        .requestMatchers("/api/login", "/api/register").permitAll() // Auth APIs
-//
-//                        // Static resources
-//                        .requestMatchers("/static/**", "/css/**", "/js/**", "/images/**").permitAll()
-//
-//                        // QR code public access (for scanning)
-//                        .requestMatchers("/qr/**", "/scanner").permitAll()
-//
-//                        // H2 Console (development only)
-//                        .requestMatchers("/h2-console/**").permitAll()
-//
-//                        // Debug endpoints (some public for troubleshooting)
-//                        .requestMatchers("/api/debug/users").permitAll()
-//
-//                        // ============================================
-//                        // PAGES - NOW PUBLIC (auth handled by JavaScript)
-//                        // ============================================
-//                        .requestMatchers("/chemicals-with-qr", "/csv-import-export").permitAll()
-//
-//                        // ============================================
-//                        // API ENDPOINTS - SECURED BY ROLE
-//                        // ============================================
-//                        .requestMatchers("/api/chemicals/**").hasAnyRole("USER", "ADMIN")
-//                        .requestMatchers("/api/profile").hasAnyRole("USER", "ADMIN")
-//                        .requestMatchers("/api/debug/**").hasAnyRole("USER", "ADMIN")
-//
-//                        // ============================================
-//                        // ADMIN ONLY ENDPOINTS
-//                        // ============================================
-//                        .requestMatchers("/admin/**", "/api/admin/**").hasRole("ADMIN")
-//
-//                        // ============================================
-//                        // ALL OTHER ENDPOINTS REQUIRE AUTH
-//                        // ============================================
-//                        .anyRequest().authenticated()
-//                )
-//                .sessionManagement(session ->
-//                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-//                )
-//                .headers(headers ->
-//                        headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)
-//                )
-//                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-//                .build();
-//    }
-//
-//    @Bean
-//    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-//        return config.getAuthenticationManager();
-//    }
+    @Bean
+    public AuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(userDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder());
+        return authProvider;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
 }
